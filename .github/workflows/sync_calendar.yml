@@ -40,17 +40,22 @@ jobs:
                   "Content-Type": "application/json",
                   "Notion-Version": "2022-06-28",
               }
+              # タイトルから「【立ち会い】」を削除
               title = event_summary.replace("【立ち会い】", "").strip()
+              
+              # 通電開始日 = 契約終了日の翌日
               power_on_date = event_start_date + timedelta(days=1)
+              # 通電停止日 = 通電開始日の30日後
               power_off_date = power_on_date + timedelta(days=30)
+
               new_page_data = {
                   "parent": {"database_id": NOTION_DATABASE_ID},
                   "properties": {
                       "アパート名・号室": {"title": [{"text": {"content": title}}]},
                       "通電開始": {"date": {"start": power_on_date.strftime('%Y-%m-%d')}},
                       "通電停止": {"date": {"start": power_off_date.strftime('%Y-%m-%d')}},
-                      "地点コード": {"rich_text": [{"text": {"content": ""}}]},
-                      "補足1": {"rich_text": [{"text": {"content": ""}}]},
+                      "地点コード": {"rich_text": [{"text": {"content": ""}}]}, # 空欄で作成
+                      "補足1": {"rich_text": [{"text": {"content": ""}}]}, # 空欄で作成
                   },
               }
               response = requests.post("https://api.notion.com/v1/pages", headers=headers, json=new_page_data )
@@ -68,7 +73,10 @@ jobs:
                   response.raise_for_status()
                   cal = Calendar.from_ical(response.text)
                   jst = pytz.timezone(TIMEZONE)
-                  today = datetime.now(jst).date()
+                  
+                  # 翌日の日付を取得
+                  tomorrow = datetime.now(jst).date() + timedelta(days=1)
+                  
                   found_events = []
                   for component in cal.walk():
                       if component.name == "VEVENT":
@@ -77,14 +85,14 @@ jobs:
                               event_dt = component.get('dtstart').dt
                               event_start_date = None
                               if isinstance(event_dt, datetime):
-                                  # タイムゾーン情報がなければJSTを付与
                                   if event_dt.tzinfo is None:
                                       event_dt = jst.localize(event_dt)
                                   event_start_date = event_dt.date()
                               elif isinstance(event_dt, date):
                                   event_start_date = event_dt
                               
-                              if event_start_date and (today - timedelta(days=30) <= event_start_date <= today):
+                              # 契約終了日が「明日」の予定のみを対象とする
+                              if event_start_date and event_start_date == tomorrow:
                                   summary = str(component.get('summary'))
                                   found_events.append({'summary': summary, 'start_date': event_start_date})
                   return found_events
@@ -97,9 +105,9 @@ jobs:
               print("--- Calendar to Notion Sync Start ---")
               events = get_calendar_events()
               if not events:
-                  print(f"No events matching criteria found.")
+                  print(f"No events matching criteria found for tomorrow.")
               else:
-                  print(f"Found {len(events)} events to process.")
+                  print(f"Found {len(events)} events to process for tomorrow.")
                   for event in events:
                       create_notion_page(event['summary'], event['start_date'])
               print("--- Sync Finished ---")
