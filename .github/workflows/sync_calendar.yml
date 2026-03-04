@@ -1,0 +1,116 @@
+name: Google Calendar to Notion Sync
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * *' # 毎日午前9時0分（JST）に実行
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests google-api-python-client google-auth-httplib2 google-auth-oauthlib
+
+      - name: Run script
+        env:
+          GOOGLE_API_CREDENTIALS: ${{ secrets.GOOGLE_API_CREDENTIALS }}
+          NOTION_API_TOKEN: ${{ secrets.NOTION_API_TOKEN }}
+          NOTION_DATABASE_ID: "318c38b4382e809d9686ca239d5303d7"
+        run: |
+          import os
+          import json
+          import requests
+          from datetime import datetime, timedelta, timezone
+          from google.oauth2.service_account import Credentials
+          from googleapiclient.discovery import build
+
+          # --- 設定 ---
+          NOTION_API_KEY = os.environ['NOTION_API_TOKEN']
+          DATABASE_ID = os.environ['NOTION_DATABASE_ID']
+          GOOGLE_CREDENTIALS_JSON = os.environ['GOOGLE_API_CREDENTIALS']
+          
+          # --- Google Calendar API ---
+          def get_calendar_events( ):
+              creds_dict = json.loads(GOOGLE_CREDENTIALS_JSON)
+              creds = Credentials.from_service_account_info(creds_dict, scopes=['https://www.googleapis.com/auth/calendar.readonly'] )
+              service = build('calendar', 'v3', credentials=creds)
+              
+              jst = timezone(timedelta(hours=+9), 'JST')
+              now = datetime.now(jst)
+              time_min = (now - timedelta(days=1)).isoformat() # 昨日から
+              time_max = (now + timedelta(days=30)).isoformat() # 30日先まで
+
+              events_result = service.events().list(
+                  calendarId='primary', 
+                  timeMin=time_min,
+                  timeMax=time_max,
+                  q='#退去立会', # メモ欄のキーワードで検索
+                  singleEvents=True,
+                  orderBy='startTime'
+              ).execute()
+              return events_result.get('items', [])
+
+          # --- Notion API ---
+          def create_notion_page(event):
+              headers = {
+                  "Authorization": f"Bearer {NOTION_API_KEY}",
+                  "Content-Type": "application/json",
+                  "Notion-Version": "2022-06-28"
+              }
+              
+              # イベントから情報を抽出
+              title = event.get('summary', 'タイトルなし')
+              description = event.get('description', '')
+              start_date_str = event['start'].get('date')
+              
+              # 補足情報（地点コードなど）をメモ欄から抽出
+              chiten_code = next((line.split('：')[1].strip() for line in description.splitlines() if '地点コード' in line), '不明')
+              hosoku_1 = next((line.split('：')[1].strip() for line in description.splitlines() if '補足1' in line), '不明')
+              
+              # 通電日と停止日を計算
+              start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+              tsuuden_start = start_date + timedelta(days=1)
+              tsuuden_stop = tsuuden_start + timedelta(days=30)
+
+              # Notionデータベースのプロパティ名に合わせて変更してください
+              new_page_data = {
+                  "parent": { "database_id": DATABASE_ID },
+                  "properties": {
+                      "アパート名・号室": { "title": [{ "text": { "content": title } }] },
+                      "地点コード": { "rich_text": [{ "text": { "content": chiten_code } }] },
+                      "補足1": { "rich_text": [{ "text": { "content": hosoku_1 } }] },
+                      "通電開始日": { "date": { "start": tsuuden_start.isoformat() } },
+                      "通電停止日": { "date": { "start": tsuuden_stop.isoformat() } },
+                      "カレンダー連携日時": { "date": { "start": datetime.now().isoformat() } }
+                  }
+              }
+              
+              response = requests.post("https://api.notion.com/v1/pages", headers=headers, json=new_page_data )
+              if response.status_code == 200:
+                  print(f"Successfully created page for: {title}")
+              else:
+                  print(f"Failed to create page for: {title}")
+                  print(f"Status Code: {response.status_code}")
+                  print(f"Response: {response.text}")
+
+
+          # --- メイン処理 ---
+          if __name__ == "__main__":
+              events = get_calendar_events()
+              if not events:
+                  print("No upcoming events with '#退去立会' found.")
+              else:
+                  for event in events:
+                      create_notion_page(event)
+
