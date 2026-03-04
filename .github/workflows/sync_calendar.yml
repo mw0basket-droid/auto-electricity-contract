@@ -27,7 +27,7 @@ jobs:
           GOOGLE_API_CREDENTIALS: ${{ secrets.GOOGLE_API_CREDENTIALS }}
           NOTION_API_TOKEN: ${{ secrets.NOTION_API_TOKEN }}
           NOTION_DATABASE_ID: "318c38b4382e809d9686ca239d5303d7"
-        run: |
+        run: python -c "
           import os
           import json
           import requests
@@ -113,4 +113,6 @@ jobs:
               else:
                   for event in events:
                       create_notion_page(event)
+"
+
 
