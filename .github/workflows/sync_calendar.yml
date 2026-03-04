@@ -1,135 +1,120 @@
-name: Google Calendar to Notion Sync
+name: GoogleカレンダーからNotionへの同期
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * *' # 毎日午前9時 (JST) に実行
 
 jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-
-      - name: Install dependencies
+      - name: 依存関係をインストールする
         run: |
-          python -m pip install --upgrade pip
-          pip install requests google-api-python-client google-auth-httplib2 google-auth-oauthlib
+          pip install requests icalendar pytz
 
-      - name: Create and run Python script
+      - name: Pythonスクリプトを作成して実行する
         env:
-          GOOGLE_API_CREDENTIALS: ${{ secrets.GOOGLE_API_CREDENTIALS }}
           NOTION_API_TOKEN: ${{ secrets.NOTION_API_TOKEN }}
-          NOTION_DATABASE_ID: "318c38b4382e809d9686ca239d5303d7"
+          NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
+          CALENDAR_ICS_URL: ${{ secrets.GOOGLE_API_CREDENTIALS }} # Secretsの名前はそのまま流用
         run: |
           cat << 'EOF' > script.py
           import os
-          import json
           import requests
-          from datetime import datetime, timedelta, timezone
-          from google.oauth2.service_account import Credentials
-          from googleapiclient.discovery import build
-          import sys
+          from icalendar import Calendar
+          from datetime import datetime, timedelta
+          import pytz
 
-          def main( ):
-              try:
-                  # --- 設定 ---
-                  NOTION_API_KEY = os.environ['NOTION_API_TOKEN']
-                  DATABASE_ID = os.environ['NOTION_DATABASE_ID']
-                  GOOGLE_CREDENTIALS_JSON_STR = os.environ['GOOGLE_API_CREDENTIALS']
+          # --- 設定 ---
+          NOTION_API_TOKEN = os.environ.get("NOTION_API_TOKEN")
+          NOTION_DATABASE_ID = os.environ.get("NOTION_DATABASE_ID")
+          CALENDAR_ICS_URL = os.environ.get("CALENDAR_ICS_URL")
+          TARGET_HASHTAG = "#退去立会"
+          TIMEZONE = "Asia/Tokyo"
 
-                  # --- Google Calendar API ---
-                  print("--- Google Calendar API Start ---")
-                  creds_dict = json.loads(GOOGLE_CREDENTIALS_JSON_STR)
-                  creds = Credentials.from_service_account_info(creds_dict, scopes=['https://www.googleapis.com/auth/calendar.readonly'] )
-                  service = build('calendar', 'v3', credentials=creds)
-                  
-                  jst = timezone(timedelta(hours=+9), 'JST')
-                  now = datetime.now(jst)
-                  time_min = (now - timedelta(days=1)).isoformat()
-                  time_max = (now + timedelta(days=30)).isoformat()
-
-                  print(f"Searching for events from {time_min} to {time_max}")
-                  events_result = service.events().list(
-                      calendarId='primary', 
-                      timeMin=time_min,
-                      timeMax=time_max,
-                      q='#退去立会',
-                      singleEvents=True,
-                      orderBy='startTime'
-                  ).execute()
-                  events = events_result.get('items', [])
-                  print(f"Found {len(events)} events.")
-                  print("--- Google Calendar API End ---")
-
-                  if not events:
-                      print("No upcoming events with '#退去立会' found. Workflow finished successfully.")
-                      return
-
-                  # --- Notion API ---
-                  print("--- Notion API Start ---")
-                  for event in events:
-                      create_notion_page(event, NOTION_API_KEY, DATABASE_ID)
-                  print("--- Notion API End ---")
-                  print("\n🎉 Workflow completed successfully! 🎉")
-
-
-              except Exception as e:
-                  print(f"❌ An unexpected error occurred: {e}", file=sys.stderr)
-                  if 'GOOGLE_API_CREDENTIALS' in os.environ:
-                      cred_str = os.environ['GOOGLE_API_CREDENTIALS']
-                      print(f"DEBUG: GOOGLE_API_CREDENTIALS starts with: {cred_str[:30]}...", file=sys.stderr)
-                      print(f"DEBUG: GOOGLE_API_CREDENTIALS ends with: {cred_str[-30:]}", file=sys.stderr)
-                  sys.exit(1)
-
-          def create_notion_page(event, api_key, db_id):
+          # --- Notionページ作成関数 ---
+          def create_notion_page(event_summary, event_start_date):
               headers = {
-                  "Authorization": f"Bearer {api_key}",
+                  "Authorization": f"Bearer {NOTION_API_TOKEN}",
                   "Content-Type": "application/json",
-                  "Notion-Version": "2022-06-28"
+                  "Notion-Version": "2022-06-28",
               }
-              
-              title = event.get('summary', 'タイトルなし')
-              print(f"Processing event: {title}")
-              description = event.get('description', '')
-              start_date_str = event['start'].get('date')
-              
-              if not start_date_str:
-                  print(f"Skipping event '{title}' because it has no start date.", file=sys.stderr)
-                  return
 
-              chiten_code = next((line.split('：')[1].strip() for line in description.splitlines() if '地点コード' in line), '不明')
-              hosoku_1 = next((line.split('：')[1].strip() for line in description.splitlines() if '補足1' in line), '不明')
-              
-              start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
-              tsuuden_start = start_date + timedelta(days=1)
-              tsuuden_stop = tsuuden_start + timedelta(days=30)
+              # アパート名・号室を抽出
+              title = event_summary.replace("【立ち会い】", "").strip()
+
+              # 通電開始日と停止日を計算
+              power_on_date = event_start_date + timedelta(days=1)
+              power_off_date = power_on_date + timedelta(days=30)
 
               new_page_data = {
-                  "parent": { "database_id": db_id },
+                  "parent": {"database_id": NOTION_DATABASE_ID},
                   "properties": {
-                      "アパート名・号室": { "title": [{ "text": { "content": title } }] },
-                      "地点コード": { "rich_text": [{ "text": { "content": chiten_code } }] },
-                      "補足1": { "rich_text": [{ "text": { "content": hosoku_1 } }] },
-                      "通電開始日": { "date": { "start": tsuuden_start.isoformat() } },
-                      "通電停止日": { "date": { "start": tsuuden_stop.isoformat() } },
-                      "カレンダー連携日時": { "date": { "start": datetime.now().isoformat() } }
-                  }
+                      "アパート名・号室": {"title": [{"text": {"content": title}}]},
+                      "通電開始": {"date": {"start": power_on_date.strftime('%Y-%m-%d')}},
+                      "通電停止": {"date": {"start": power_off_date.strftime('%Y-%m-%d')}},
+                      # 地点コードと補足1はカレンダー情報から取得できないため空欄
+                      "地点コード": {"rich_text": [{"text": {"content": ""}}]},
+                      "補足1": {"rich_text": [{"text": {"content": ""}}]},
+                  },
               }
-              
-              response = requests.post("https://api.notion.com/v1/pages", headers=headers, json=new_page_data )
-              if response.status_code == 200:
-                  print(f"✅ Successfully created page for: {title}")
-              else:
-                  print(f"❌ Failed to create page for: {title}", file=sys.stderr)
-                  print(f"Status Code: {response.status_code}", file=sys.stderr)
-                  print(f"Response: {response.text}", file=sys.stderr)
 
+              response = requests.post("https://api.notion.com/v1/pages", headers=headers, json=new_page_data )
+
+              if response.status_code == 200:
+                  print(f"Successfully created page for: {title}")
+              else:
+                  print(f"Failed to create page for: {title}")
+                  print(f"Status Code: {response.status_code}")
+                  print(f"Response: {response.text}")
+
+          # --- Googleカレンダーイベント取得関数 (ICS) ---
+          def get_calendar_events():
+              try:
+                  response = requests.get(CALENDAR_ICS_URL)
+                  response.raise_for_status()
+                  cal = Calendar.from_ical(response.text)
+                  
+                  jst = pytz.timezone(TIMEZONE)
+                  today = datetime.now(jst).date()
+                  
+                  found_events = []
+
+                  for component in cal.walk():
+                      if component.name == "VEVENT":
+                          description = str(component.get('description', ''))
+                          if TARGET_HASHTAG in description:
+                              event_start_dt = component.get('dtstart').dt
+                              # タイムゾーン情報がない場合はJSTとして扱う
+                              if isinstance(event_start_dt, datetime) and event_start_dt.tzinfo is None:
+                                  event_start_dt = jst.localize(event_start_dt)
+                              
+                              event_start_date = event_start_dt.date()
+
+                              # 契約終了日が今日から過去30日以内のものを対象とする
+                              if today - timedelta(days=30) <= event_start_date <= today:
+                                  summary = str(component.get('summary'))
+                                  found_events.append({'summary': summary, 'start_date': event_start_date})
+                  
+                  return found_events
+
+              except Exception as e:
+                  print(f"Error fetching or parsing calendar: {e}")
+                  return []
+
+          # --- メイン処理 ---
           if __name__ == "__main__":
-              main()
+              print("--- Calendar to Notion Sync Start ---")
+              events = get_calendar_events()
+              if not events:
+                  print(f"No upcoming events with '{TARGET_HASHTAG}' found.")
+              else:
+                  print(f"Found {len(events)} events to process.")
+                  for event in events:
+                      create_notion_page(event['summary'], event['start_date'])
+              print("--- Sync Finished ---")
+
           EOF
           python script.py
+
