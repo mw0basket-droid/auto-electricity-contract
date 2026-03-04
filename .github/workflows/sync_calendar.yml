@@ -22,12 +22,13 @@ jobs:
           python -m pip install --upgrade pip
           pip install requests google-api-python-client google-auth-httplib2 google-auth-oauthlib
 
-      - name: Run script
+      - name: Create and run Python script
         env:
           GOOGLE_API_CREDENTIALS: ${{ secrets.GOOGLE_API_CREDENTIALS }}
           NOTION_API_TOKEN: ${{ secrets.NOTION_API_TOKEN }}
           NOTION_DATABASE_ID: "318c38b4382e809d9686ca239d5303d7"
-        run: python -c "
+        run: |
+          cat << 'EOF' > script.py
           import os
           import json
           import requests
@@ -113,6 +114,8 @@ jobs:
               else:
                   for event in events:
                       create_notion_page(event)
-"
+          EOF
+          python script.py
+
 
 
