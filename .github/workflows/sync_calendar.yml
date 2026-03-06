@@ -1,4 +1,4 @@
-name: GoogleカレンダーからNotionへの同期
+name: GoogleカレンダーからGoogle Sheetsへの同期
 
 on:
   workflow_dispatch:
@@ -11,60 +11,129 @@ jobs:
     steps:
       - name: 依存関係をインストールする
         run: |
-          pip install requests icalendar pytz
+          pip install requests icalendar pytz gspread google-auth
 
       - name: Pythonスクリプトを作成して実行する
         env:
-          NOTION_API_TOKEN: ${{ secrets.NOTION_TOKEN_V3 }}
-          NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
-          CALENDAR_ICS_URL: ${{ secrets.GOOGLE_API_CREDENTIALS }}
+          GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+          SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
+          CALENDAR_ICS_URL: ${{ secrets.CALENDAR_ICS_URL }}
         run: |
-          cat << 'EOF' > script.py
+          cat << 'PYEOF' > script.py
           import os
+          import json
+          import re
           import requests
+          import gspread
+          from google.oauth2.service_account import Credentials
           from icalendar import Calendar
           from datetime import datetime, timedelta, date
           import pytz
 
           # --- 設定 ---
-          NOTION_API_TOKEN = os.environ.get("NOTION_API_TOKEN")
-          NOTION_DATABASE_ID = os.environ.get("NOTION_DATABASE_ID")
+          GOOGLE_CREDENTIALS_JSON = os.environ.get("GOOGLE_CREDENTIALS")
+          SPREADSHEET_ID = os.environ.get("SPREADSHEET_ID")
           CALENDAR_ICS_URL = os.environ.get("CALENDAR_ICS_URL")
           TARGET_HASHTAG = "#退去立会"
           TIMEZONE = "Asia/Tokyo"
 
-          # --- Notionページ作成関数 ---
-          def create_notion_page(event_summary, event_start_date):
-              headers = {
-                  "Authorization": f"Bearer {NOTION_API_TOKEN}",
-                  "Content-Type": "application/json",
-                  "Notion-Version": "2022-06-28",
+          # --- 説明欄をパースする関数 ---
+          # 説明欄の形式（半角・全角パイプ両対応）:
+          # #退去立会|地点コード：XXXXXXX|補足1：XXXXX|通電開始：YYYY/MM/DD|通電停止：YYYY/MM/DD
+          def parse_description(description):
+              result = {
+                  "地点コード": "",
+                  "補足1": "",
+                  "通電開始": "",
+                  "通電停止": ""
               }
-              # タイトルから「【立ち会い】」を削除
-              title = event_summary.replace("【立ち会い】", "").strip()
-              
-              # 通電開始日 = 契約終了日の翌日
-              power_on_date = event_start_date + timedelta(days=1)
-              # 通電停止日 = 通電開始日の30日後
-              power_off_date = power_on_date + timedelta(days=30)
+              if not description:
+                  return result
 
-              new_page_data = {
-                  "parent": {"database_id": NOTION_DATABASE_ID},
-                  "properties": {
-                      "アパート名・号室": {"title": [{"text": {"content": title}}]},
-                      "通電開始": {"date": {"start": power_on_date.strftime('%Y-%m-%d')}},
-                      "通電停止": {"date": {"start": power_off_date.strftime('%Y-%m-%d')}},
-                      "地点コード": {"rich_text": [{"text": {"content": ""}}]}, # 空欄で作成
-                      "補足1": {"rich_text": [{"text": {"content": ""}}]}, # 空欄で作成
-                  },
-              }
-              response = requests.post("https://api.notion.com/v1/pages", headers=headers, json=new_page_data )
-              if response.status_code == 200:
-                  print(f"Successfully created page for: {title}")
+              # 全角パイプを半角パイプに統一
+              description = description.replace("｜", "|")
+              parts = description.split("|")
+              for part in parts:
+                  part = part.strip()
+                  if "地点コード" in part:
+                      m = re.search(r'地点コード[：:]\s*(\S+)', part)
+                      if m:
+                          result["地点コード"] = m.group(1)
+                  elif "補足1" in part:
+                      m = re.search(r'補足1[：:]\s*(\S+)', part)
+                      if m:
+                          result["補足1"] = m.group(1)
+                  elif "通電開始" in part:
+                      m = re.search(r'通電開始[：:]\s*(\d{4}/\d{1,2}/\d{1,2})', part)
+                      if m:
+                          # YYYY/M/D → YYYY-MM-DD に変換
+                          d = datetime.strptime(m.group(1), '%Y/%m/%d')
+                          result["通電開始"] = d.strftime('%Y-%m-%d')
+                  elif "通電停止" in part:
+                      m = re.search(r'通電停止[：:]\s*(\d{4}/\d{1,2}/\d{1,2})', part)
+                      if m:
+                          d = datetime.strptime(m.group(1), '%Y/%m/%d')
+                          result["通電停止"] = d.strftime('%Y-%m-%d')
+              return result
+
+          # --- Google Sheets クライアント初期化 ---
+          def get_sheets_client():
+              creds_dict = json.loads(GOOGLE_CREDENTIALS_JSON)
+              scopes = [
+                  "https://spreadsheets.google.com/feeds",
+                  "https://www.googleapis.com/auth/spreadsheets",
+                  "https://www.googleapis.com/auth/drive"
+              ]
+              creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
+              return gspread.authorize(creds)
+
+          # --- Google Sheetsに行を追加する関数 ---
+          def add_row_to_sheet(client, event_summary, event_start_date, parsed):
+              spreadsheet = client.open_by_key(SPREADSHEET_ID)
+              sheet = spreadsheet.sheet1
+
+              # ヘッダー行が存在しない場合は追加
+              existing = sheet.get_all_values()
+              if not existing or existing[0][0] != "アパート名・号室":
+                  headers = ["アパート名・号室", "通電開始", "通電停止", "地点コード", "補足1", "ステータス", "登録日時"]
+                  sheet.insert_row(headers, 1)
+                  existing = sheet.get_all_values()
+
+              # タイトルから「【立会】」「【立ち会い】」等を削除
+              title = re.sub(r'【.*?】', '', event_summary).strip()
+
+              # 通電開始・停止日（カレンダーの説明欄から取得、なければ計算）
+              if parsed["通電開始"]:
+                  power_on_str = parsed["通電開始"]
               else:
-                  print(f"Failed to create page for: {title}")
-                  print(f"Status Code: {response.status_code}")
-                  print(f"Response: {response.text}")
+                  power_on_date = event_start_date + timedelta(days=1)
+                  power_on_str = power_on_date.strftime('%Y-%m-%d')
+
+              if parsed["通電停止"]:
+                  power_off_str = parsed["通電停止"]
+              else:
+                  power_on_date = datetime.strptime(power_on_str, '%Y-%m-%d').date()
+                  power_off_str = (power_on_date + timedelta(days=30)).strftime('%Y-%m-%d')
+
+              # 重複チェック（同じタイトルと通電開始日が既に存在する場合はスキップ）
+              all_rows = sheet.get_all_values()
+              for row in all_rows[1:]:  # ヘッダーをスキップ
+                  if len(row) >= 2 and row[0] == title and row[1] == power_on_str:
+                      print(f"スキップ（重複）: {title}")
+                      return
+
+              now_jst = datetime.now(pytz.timezone(TIMEZONE)).strftime("%Y-%m-%d %H:%M")
+              new_row = [
+                  title,
+                  power_on_str,
+                  power_off_str,
+                  parsed["地点コード"],
+                  parsed["補足1"],
+                  "未処理",
+                  now_jst
+              ]
+              sheet.append_row(new_row)
+              print(f"✅ 追加成功: {title} (通電開始: {power_on_str})")
 
           # --- Googleカレンダーイベント取得関数 (ICS) ---
           def get_calendar_events():
@@ -73,10 +142,11 @@ jobs:
                   response.raise_for_status()
                   cal = Calendar.from_ical(response.text)
                   jst = pytz.timezone(TIMEZONE)
-                  
+
                   # 翌日の日付を取得
                   tomorrow = datetime.now(jst).date() + timedelta(days=1)
-                  
+                  print(f"対象日（明日）: {tomorrow}")
+
                   found_events = []
                   for component in cal.walk():
                       if component.name == "VEVENT":
@@ -87,30 +157,64 @@ jobs:
                               if isinstance(event_dt, datetime):
                                   if event_dt.tzinfo is None:
                                       event_dt = jst.localize(event_dt)
-                                  event_start_date = event_dt.date()
+                                  event_start_date = event_dt.astimezone(jst).date()
                               elif isinstance(event_dt, date):
                                   event_start_date = event_dt
-                              
-                              # 契約終了日が「明日」の予定のみを対象とする
+
+                              # 立会日が「明日」の予定のみを対象とする
                               if event_start_date and event_start_date == tomorrow:
                                   summary = str(component.get('summary'))
-                                  found_events.append({'summary': summary, 'start_date': event_start_date})
+                                  parsed = parse_description(description)
+                                  found_events.append({
+                                      'summary': summary,
+                                      'start_date': event_start_date,
+                                      'parsed': parsed
+                                  })
+                                  print(f"対象イベント発見: {summary} | {parsed}")
                   return found_events
               except Exception as e:
-                  print(f"Error fetching or parsing calendar: {e}")
+                  print(f"カレンダー取得エラー: {e}")
+                  import traceback
+                  traceback.print_exc()
                   return []
 
           # --- メイン処理 ---
           if __name__ == "__main__":
-              print("--- Calendar to Notion Sync Start ---")
+              print("--- Calendar to Google Sheets Sync Start ---")
+
+              if not GOOGLE_CREDENTIALS_JSON:
+                  print("エラー: GOOGLE_CREDENTIALS が設定されていません")
+                  exit(1)
+              if not SPREADSHEET_ID:
+                  print("エラー: SPREADSHEET_ID が設定されていません")
+                  exit(1)
+              if not CALENDAR_ICS_URL:
+                  print("エラー: CALENDAR_ICS_URL が設定されていません")
+                  exit(1)
+
+              # Google Sheetsクライアント初期化
+              try:
+                  client = get_sheets_client()
+                  print("✅ Google Sheets接続成功")
+              except Exception as e:
+                  print(f"Google Sheets接続エラー: {e}")
+                  import traceback
+                  traceback.print_exc()
+                  exit(1)
+
+              # カレンダーイベント取得
               events = get_calendar_events()
               if not events:
-                  print(f"No events matching criteria found for tomorrow.")
+                  print("明日の対象イベントはありません。")
               else:
-                  print(f"Found {len(events)} events to process for tomorrow.")
+                  print(f"{len(events)}件のイベントを処理します。")
                   for event in events:
-                      create_notion_page(event['summary'], event['start_date'])
-              print("--- Sync Finished ---")
+                      add_row_to_sheet(client, event['summary'], event['start_date'], event['parsed'])
 
-          EOF
+              print("--- Sync Finished ---")
+          PYEOF
           python script.py
+
+      - name: 完了通知
+        if: always()
+        run: echo "同期処理が完了しました。"
