@@ -100,9 +100,10 @@ function renderApplications(data) {
 
 // ===== 完了ボタン: GitHub API で申請を削除 =====
 async function markComplete(data, index, btn) {
-  const token = await loadToken();
+  // Tokenを取得し、前後の空白・改行を除去
+  const rawToken = await loadToken();
+  const token = rawToken.replace(/[^\x20-\x7E]/g, '').trim();
   if (!token) {
-    // Token が未設定の場合は設定欄を表示
     document.getElementById('token-section').style.display = 'block';
     showMessage('GitHub Tokenを設定してください', 'error');
     return;
@@ -115,8 +116,9 @@ async function markComplete(data, index, btn) {
     // 現在のファイルの SHA を取得（更新に必要）
     const shaResp = await fetch(GITHUB_API_URL, {
       headers: {
-        'Authorization': 'token ' + token,
-        'Accept': 'application/vnd.github.v3+json'
+        'Authorization': 'Bearer ' + token,
+        'Accept': 'application/vnd.github.v3+json',
+        'X-GitHub-Api-Version': '2022-11-28'
       }
     });
     if (!shaResp.ok) throw new Error('ファイル情報の取得失敗: HTTP ' + shaResp.status);
@@ -132,12 +134,13 @@ async function markComplete(data, index, btn) {
     const updateResp = await fetch(GITHUB_API_URL, {
       method: 'PUT',
       headers: {
-        'Authorization': 'token ' + token,
+        'Authorization': 'Bearer ' + token,
         'Accept': 'application/vnd.github.v3+json',
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'X-GitHub-Api-Version': '2022-11-28'
       },
       body: JSON.stringify({
-        message: '申請完了: ' + data.applications[index].title,
+        message: 'complete: ' + data.applications[index].title,
         content: newContent,
         sha: sha
       })
