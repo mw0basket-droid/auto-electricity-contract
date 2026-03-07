@@ -1,4 +1,4 @@
-// popup.js v6
+// popup.js v7
 // 設計方針:
 //   1. PinTタブを /supplypoint/ に移動させる（必要な場合のみ）
 //   2. ページ読み込み完了を待つ
@@ -85,10 +85,13 @@ async function startAutoFill(app) {
   }
 
   // Step2: executeScript で sessionStorage に書き込む
+  // world: 'MAIN' を指定してページ本体の sessionStorage に書き込む
+  // （デフォルトの ISOLATED world では content script から読めない）
   const stateData = JSON.stringify({ step: 'search', app: app });
   try {
     const results = await chrome.scripting.executeScript({
       target: { tabId: targetTabId },
+      world: 'MAIN',
       func: (key, value) => {
         sessionStorage.setItem(key, value);
         const check = sessionStorage.getItem(key);
