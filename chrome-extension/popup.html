@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>PinT 通電自動申請</title>
+  <style>
+    body { width: 320px; font-family: sans-serif; margin: 0; padding: 0; background: #f8f9fa; }
+    .header { background: linear-gradient(135deg, #e91e8c, #9c27b0); color: white; padding: 16px; text-align: center; }
+    .header h1 { margin: 0; font-size: 16px; }
+    .header p { margin: 4px 0 0; font-size: 11px; opacity: 0.9; }
+    .content { padding: 12px; }
+    .application-item { background: white; border-radius: 8px; padding: 12px; margin-bottom: 8px; border: 1px solid #e0e0e0; border-left: 4px solid #e91e8c; }
+    .app-title { font-size: 13px; font-weight: bold; color: #333; margin-bottom: 6px; }
+    .app-detail { font-size: 11px; color: #666; margin: 2px 0; }
+    .btn { display: block; width: 100%; padding: 10px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold; margin-top: 8px; box-sizing: border-box; }
+    .btn-primary { background: linear-gradient(135deg, #e91e8c, #9c27b0); color: white; }
+    .btn-secondary { background: #f0f0f0; color: #333; }
+    .empty-state { text-align: center; padding: 20px; color: #999; font-size: 12px; }
+    .loading { text-align: center; padding: 20px; color: #666; font-size: 12px; }
+    #message { font-size: 11px; padding: 8px; border-radius: 4px; margin-top: 8px; display: none; }
+    .msg-success { background: #e8f5e9; color: #2e7d32; }
+    .msg-error { background: #ffebee; color: #c62828; }
+    .msg-info { background: #e3f2fd; color: #1565c0; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>PinT 通電自動申請</h1>
+    <p id="target-date">読み込み中...</p>
+  </div>
+  <div class="content">
+    <div id="app-list">
+      <div class="loading">申請データを読み込み中...</div>
+    </div>
+    <div id="message"></div>
+    <button class="btn btn-secondary" id="btn-refresh">データを再読み込み</button>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>
