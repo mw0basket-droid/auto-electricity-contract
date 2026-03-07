@@ -1,13 +1,14 @@
 {
-  "generated_at": "2026-03-07 15:01:31",
-  "target_date": "2026-03-08",
+  "target_date": "2026/03/08",
+  "generated_at": "2026-03-07T01:24:52.823282",
   "applications": [
     {
-      "title": "クレメント余戸B 201",
-      "power_on": "2026-03-13",
-      "power_off": "2026-04-13",
-      "chiten_code": "011569602",
-      "hosoku1": "02010"
+      "title": "テスト物件 101号室 退去立会",
+      "chiten_code": "TEST001234",
+      "hosoku1": "101",
+      "power_on": "2026/03/08",
+      "power_off": "2026/04/07",
+      "event_date": "2026/03/08"
     }
   ]
 }
