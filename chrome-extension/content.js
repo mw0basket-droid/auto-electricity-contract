@@ -187,13 +187,15 @@ async function fillDates(app) {
     return;
   }
 
-  // カレンダーを開く
-  console.log('[PinT] カレンダーを開く');
+  // カレンダーを開く（複数の方法を試みる）
+  console.log('[PinT] カレンダーを開く（方法1: click）');
   fpInput.click();
   await sleep(600);
 
   let calendarEl = document.querySelector('.flatpickr-calendar.open');
+
   if (!calendarEl) {
+    console.log('[PinT] click()で開かず → 方法2: _flatpickr.open()');
     const fp = fpInput._flatpickr;
     if (fp) {
       fp.open();
@@ -203,7 +205,35 @@ async function fillDates(app) {
   }
 
   if (!calendarEl) {
-    console.log('[PinT] flatpickrカレンダーが開きませんでした');
+    console.log('[PinT] _flatpickr.open()でも開かず → 方法3: focusイベント');
+    fpInput.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+    fpInput.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+    fpInput.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await sleep(600);
+    calendarEl = document.querySelector('.flatpickr-calendar.open');
+  }
+
+  if (!calendarEl) {
+    console.log('[PinT] 方法3でも開かず → 方法4: .flatpickr-input を直接探してクリック');
+    const allFpInputs = document.querySelectorAll('.flatpickr-input');
+    console.log('[PinT] .flatpickr-input 数: ' + allFpInputs.length);
+    for (const el of allFpInputs) {
+      console.log('[PinT]   id=' + el.id + ' class=' + el.className);
+      el.click();
+      await sleep(400);
+      calendarEl = document.querySelector('.flatpickr-calendar.open');
+      if (calendarEl) break;
+    }
+  }
+
+  if (!calendarEl) {
+    // カレンダーが非表示（display:none）の可能性を確認
+    const allCals = document.querySelectorAll('.flatpickr-calendar');
+    console.log('[PinT] .flatpickr-calendar 数: ' + allCals.length);
+    allCals.forEach((c, i) => {
+      console.log('[PinT]   cal[' + i + '] class=' + c.className + ' display=' + getComputedStyle(c).display);
+    });
+    console.log('[PinT] flatpickrカレンダーが開きませんでした（全方法失敗）');
     await clearAppData();
     return;
   }
