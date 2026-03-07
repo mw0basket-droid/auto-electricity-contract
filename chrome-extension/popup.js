@@ -1,5 +1,10 @@
-// popup.js v3
-// chrome.scripting.executeScriptでsessionStorageを直接書き込んでからページ遷移
+// popup.js v4
+// 設計方針:
+//   1. executeScript でタブの sessionStorage に申請データを書き込む
+//   2. タブをリロードする（content.js が起動してsessionStorageを読み取る）
+//   3. content.js は起動時に sessionStorage を確認して自動的に処理を開始する
+//   ※ sendMessage は使わない（ページ遷移後にcontent.jsが再起動するため）
+
 const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/mw0basket-droid/auto-electricity-contract/main/pending_applications.json';
 const STORAGE_KEY = 'pint_auto_fill';
 const PINT_SUPPLYPOINT_URL = 'https://kentaku.pint-cloud.com/supplypoint/';
@@ -9,7 +14,7 @@ function showMessage(text, type) {
   msg.textContent = text;
   msg.className = 'msg-' + type;
   msg.style.display = 'block';
-  setTimeout(() => { msg.style.display = 'none'; }, 5000);
+  setTimeout(() => { msg.style.display = 'none'; }, 6000);
 }
 
 function renderApplications(data) {
@@ -39,8 +44,7 @@ function renderApplications(data) {
   document.querySelectorAll('.btn-primary').forEach(btn => {
     btn.addEventListener('click', (e) => {
       const idx = parseInt(e.target.getAttribute('data-index'));
-      const app = data.applications[idx];
-      startAutoFill(app);
+      startAutoFill(data.applications[idx]);
     });
   });
 }
@@ -48,56 +52,56 @@ function renderApplications(data) {
 async function startAutoFill(app) {
   showMessage('処理を開始しています...', 'info');
 
-  const tabs = await chrome.tabs.query({ url: 'https://kentaku.pint-cloud.com/*' });
+  // Step1: PinTタブを探す or 作成する
+  let tabs = await chrome.tabs.query({ url: 'https://kentaku.pint-cloud.com/*' });
+  let targetTabId;
 
-  let targetTab;
   if (tabs.length === 0) {
-    targetTab = await chrome.tabs.create({ url: PINT_SUPPLYPOINT_URL });
+    // PinTタブがない場合: 新規作成して読み込み完了を待つ
+    const newTab = await chrome.tabs.create({ url: PINT_SUPPLYPOINT_URL });
+    targetTabId = newTab.id;
     showMessage('PinTを開いています...', 'info');
-    await waitForTabLoad(targetTab.id);
-    targetTab = await chrome.tabs.get(targetTab.id);
+    await waitForTabLoad(targetTabId);
   } else {
-    targetTab = tabs[0];
-    await chrome.tabs.update(targetTab.id, { active: true });
+    targetTabId = tabs[0].id;
+    await chrome.tabs.update(targetTabId, { active: true });
 
-    const isOnSearchForm = targetTab.url.startsWith(PINT_SUPPLYPOINT_URL) &&
-      !targetTab.url.includes('/turn_and_termination_vacancy') &&
-      !targetTab.url.includes('/turn_and_termination/') &&
-      !/\/supplypoint\/\d+\//.test(targetTab.url);
+    // supplypoint/ の検索フォームでない場合は移動
+    const currentTab = tabs[0];
+    const url = currentTab.url || '';
+    const isSearchForm = url.startsWith(PINT_SUPPLYPOINT_URL) &&
+      !/\/supplypoint\/\d+\//.test(url) &&
+      !url.includes('/turn_and_termination');
 
-    if (!isOnSearchForm) {
-      await chrome.tabs.update(targetTab.id, { url: PINT_SUPPLYPOINT_URL });
+    if (!isSearchForm) {
+      await chrome.tabs.update(targetTabId, { url: PINT_SUPPLYPOINT_URL });
       showMessage('でんき地点管理ページに移動中...', 'info');
-      await waitForTabLoad(targetTab.id);
-      targetTab = await chrome.tabs.get(targetTab.id);
+      await waitForTabLoad(targetTabId);
     }
   }
 
-  // sessionStorageに申請データを書き込む（executeScriptで直接操作）
+  // Step2: executeScript で sessionStorage に申請データを書き込む
+  // （これはページ遷移後も保持される）
   const stateData = JSON.stringify({ step: 'search', app: app });
   try {
     await chrome.scripting.executeScript({
-      target: { tabId: targetTab.id },
+      target: { tabId: targetTabId },
       func: (key, value) => {
         sessionStorage.setItem(key, value);
-        console.log('[PinT popup] sessionStorage書き込み完了');
+        console.log('[PinT popup] sessionStorage書き込み完了: ' + value.substring(0, 50));
       },
       args: [STORAGE_KEY, stateData]
     });
+    console.log('[popup] sessionStorage書き込み成功');
   } catch (e) {
-    showMessage('エラー: ' + e.message, 'error');
+    showMessage('エラー: sessionStorage書き込み失敗 - ' + e.message, 'error');
     return;
   }
 
-  // content.jsにstartFillメッセージを送る
-  try {
-    await chrome.tabs.sendMessage(targetTab.id, { action: 'startFill', app: app });
-    showMessage('自動入力を開始しました！', 'success');
-  } catch (e) {
-    // content.jsが準備できていない場合はページをリロードしてsessionStorageから自動再開
-    showMessage('自動入力を開始します...', 'info');
-    chrome.tabs.reload(targetTab.id);
-  }
+  // Step3: ページをリロードして content.js を再起動させる
+  // content.js は起動時に sessionStorage を確認して自動的に処理を開始する
+  showMessage('自動入力を開始します...', 'success');
+  await chrome.tabs.reload(targetTabId);
 }
 
 function waitForTabLoad(tabId) {
@@ -105,14 +109,16 @@ function waitForTabLoad(tabId) {
     const listener = (id, changeInfo) => {
       if (id === tabId && changeInfo.status === 'complete') {
         chrome.tabs.onUpdated.removeListener(listener);
-        setTimeout(resolve, 800);
+        // ページが安定するまで少し待つ
+        setTimeout(resolve, 500);
       }
     };
     chrome.tabs.onUpdated.addListener(listener);
+    // タイムアウト（15秒）
     setTimeout(() => {
       chrome.tabs.onUpdated.removeListener(listener);
       resolve();
-    }, 10000);
+    }, 15000);
   });
 }
 
