@@ -1,14 +1,13 @@
-// popup.js v12
-// 設計方針:
-//   ページ移動を極力しない。
-//   PinT タブが /supplypoint/ 系にいる場合はそのまま sessionStorage を書き込んで sendMessage。
-//   /supplypoint/ 系にいない場合のみ /supplypoint/ に移動する。
-//   sendMessage が失敗した場合はリロードで対応。
+// popup.js v13
+// 根本原因修正:
+//   sessionStorage は executeScript(MAIN world) と content.js(isolated world) で
+//   同じオブジェクトを参照しているが、ページ遷移のたびにクリアされる。
+//   さらに popup.js から executeScript で書き込んだ sessionStorage が
+//   content.js から見えないケースがあることが判明。
 //
-//   content.js は現在のページ種別に応じて処理を開始する:
-//     search_form  → 地点コード入力 → 絞込
-//     search_result → 空室プランボタン待機 → クリック
-//     date_form    → 日付フォーム入力
+//   解決策: chrome.storage.session を使う。
+//   chrome.storage.session はタブをまたいで共有され、ブラウザセッション中は保持される。
+//   content.js は chrome.storage.session.get() でデータを取得する。
 
 const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/mw0basket-droid/auto-electricity-contract/main/pending_applications.json';
 const STORAGE_KEY = 'pint_auto_fill';
@@ -56,7 +55,7 @@ function renderApplications(data) {
 
 async function startAutoFill(app) {
   showMessage('処理を開始しています...', 'info');
-  console.log('[popup v12] startAutoFill app=' + JSON.stringify(app));
+  console.log('[popup v13] startAutoFill app=' + JSON.stringify(app));
 
   // Step1: PinT タブを探す or 作成する
   const tabs = await chrome.tabs.query({ url: 'https://kentaku.pint-cloud.com/*' });
@@ -64,85 +63,64 @@ async function startAutoFill(app) {
   let targetTabUrl;
 
   if (tabs.length === 0) {
-    // PinT タブがない → 新規作成して /supplypoint/ に移動
-    console.log('[popup v12] PinTタブなし → 新規作成');
+    console.log('[popup v13] PinTタブなし → 新規作成');
     showMessage('でんき地点管理ページを開いています...', 'info');
     const newTab = await chrome.tabs.create({ url: PINT_SUPPLYPOINT_URL });
     targetTabId = newTab.id;
     await waitForTabLoad(targetTabId);
     const updatedTab = await chrome.tabs.get(targetTabId);
     targetTabUrl = updatedTab.url || '';
-    console.log('[popup v12] 新規タブURL=' + targetTabUrl);
+    console.log('[popup v13] 新規タブURL=' + targetTabUrl);
   } else {
     targetTabId = tabs[0].id;
     targetTabUrl = tabs[0].url || '';
     await chrome.tabs.update(targetTabId, { active: true });
-    console.log('[popup v12] PinTタブ発見 tabId=' + targetTabId + ' url=' + targetTabUrl);
+    console.log('[popup v13] PinTタブ発見 tabId=' + targetTabId + ' url=' + targetTabUrl);
   }
 
   // Step2: /supplypoint/ 系にいない場合のみ移動する
   const isSupplyPointPage = targetTabUrl.includes('kentaku.pint-cloud.com/supplypoint');
   if (!isSupplyPointPage) {
-    console.log('[popup v12] /supplypoint/ 以外にいるため移動: ' + targetTabUrl);
+    console.log('[popup v13] /supplypoint/ 以外にいるため移動: ' + targetTabUrl);
     showMessage('でんき地点管理ページに移動中...', 'info');
     await chrome.tabs.update(targetTabId, { url: PINT_SUPPLYPOINT_URL });
     await waitForTabLoad(targetTabId);
     const updatedTab = await chrome.tabs.get(targetTabId);
     targetTabUrl = updatedTab.url || '';
-    console.log('[popup v12] 移動後URL=' + targetTabUrl);
+    console.log('[popup v13] 移動後URL=' + targetTabUrl);
   } else {
-    console.log('[popup v12] /supplypoint/ 系にいます: ' + targetTabUrl);
+    console.log('[popup v13] /supplypoint/ 系にいます: ' + targetTabUrl);
   }
 
-  // Step3: sessionStorage に申請データを書き込む（MAIN world）
-  // step: 'auto' → content.js が現在のページ種別を判定して適切な処理を開始する
-  const stateData = JSON.stringify({ step: 'auto', app: app });
-  console.log('[popup v12] sessionStorage書き込み開始 tabId=' + targetTabId);
-  let writeResult = null;
+  // Step3: chrome.storage.session に申請データを書き込む
+  // chrome.storage.session はページ遷移をまたいで保持され、
+  // content.js から chrome.storage.session.get() で読み取れる
+  const stateData = { step: 'auto', app: app };
   try {
-    const results = await chrome.scripting.executeScript({
-      target: { tabId: targetTabId },
-      world: 'MAIN',
-      func: (key, value) => {
-        try {
-          sessionStorage.setItem(key, value);
-          const check = sessionStorage.getItem(key);
-          return check === value ? 'ok' : 'mismatch:got=' + check;
-        } catch (e) {
-          return 'error:' + e.message;
-        }
-      },
-      args: [STORAGE_KEY, stateData]
-    });
-    writeResult = results && results[0] && results[0].result;
-    console.log('[popup v12] sessionStorage書き込み結果: ' + writeResult);
+    await chrome.storage.session.set({ [STORAGE_KEY]: stateData });
+    const check = await chrome.storage.session.get(STORAGE_KEY);
+    console.log('[popup v13] chrome.storage.session書き込み完了: ' + JSON.stringify(check));
   } catch (e) {
-    console.log('[popup v12] executeScript失敗: ' + e.message);
-    writeResult = 'error:' + e.message;
-  }
-
-  if (writeResult !== 'ok') {
-    showMessage('エラー: sessionStorage書き込み失敗 (' + writeResult + ')', 'error');
+    console.log('[popup v13] chrome.storage.session書き込み失敗: ' + e.message);
+    showMessage('エラー: データ保存失敗 (' + e.message + ')', 'error');
     return;
   }
 
   // Step4: sendMessage で content.js に処理開始を通知する
-  // content.js は sessionStorage を読んで現在のページ種別に応じた処理を開始する
-  console.log('[popup v12] sendMessage送信 tabId=' + targetTabId);
+  console.log('[popup v13] sendMessage送信 tabId=' + targetTabId);
   let messageSent = false;
   try {
     const response = await chrome.tabs.sendMessage(targetTabId, { action: 'startFill' });
-    console.log('[popup v12] sendMessage応答: ' + JSON.stringify(response));
+    console.log('[popup v13] sendMessage応答: ' + JSON.stringify(response));
     messageSent = true;
     showMessage('自動入力を開始しました！', 'success');
   } catch (e) {
-    console.log('[popup v12] sendMessage失敗（content.jsが未ロードの可能性）: ' + e.message);
+    console.log('[popup v13] sendMessage失敗（content.jsが未ロードの可能性）: ' + e.message);
   }
 
   // sendMessage が失敗した場合はリロードで対応
-  // （sessionStorage は書き込み済みなので、リロード後に content.js が自動的に処理を開始する）
   if (!messageSent) {
-    console.log('[popup v12] リロードで対応します');
+    console.log('[popup v13] リロードで対応します');
     showMessage('自動入力を開始しました！（ページをリロードします）', 'info');
     await chrome.tabs.reload(targetTabId);
   }
