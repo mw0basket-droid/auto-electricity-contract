@@ -1,0 +1,134 @@
+name: 申請を処理済みにマーク
+
+on:
+  workflow_dispatch:
+    inputs:
+      row_index:
+        description: 'スプレッドシートの行番号（1-indexed）'
+        required: true
+        type: string
+      title:
+        description: '申請タイトル（確認用）'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  mark_complete:
+    runs-on: ubuntu-latest
+    steps:
+      - name: リポジトリをチェックアウト
+        uses: actions/checkout@v4
+
+      - name: 依存関係をインストールする
+        run: |
+          pip install gspread google-auth
+
+      - name: スプレッドシートのステータスを更新する
+        env:
+          GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+          SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
+          ROW_INDEX: ${{ inputs.row_index }}
+          TITLE: ${{ inputs.title }}
+        run: |
+          cat << 'PYEOF' > update_status.py
+          import os
+          import json
+          import gspread
+          from google.oauth2.service_account import Credentials
+
+          GOOGLE_CREDENTIALS_JSON = os.environ.get("GOOGLE_CREDENTIALS")
+          SPREADSHEET_ID = os.environ.get("SPREADSHEET_ID")
+          ROW_INDEX = int(os.environ.get("ROW_INDEX", "0"))
+          TITLE = os.environ.get("TITLE", "")
+
+          if not GOOGLE_CREDENTIALS_JSON or not SPREADSHEET_ID or ROW_INDEX == 0:
+              print("エラー: 必要な環境変数が設定されていません")
+              exit(1)
+
+          creds_dict = json.loads(GOOGLE_CREDENTIALS_JSON)
+          scopes = [
+              "https://spreadsheets.google.com/feeds",
+              "https://www.googleapis.com/auth/spreadsheets",
+              "https://www.googleapis.com/auth/drive"
+          ]
+          creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
+          client = gspread.authorize(creds)
+
+          spreadsheet = client.open_by_key(SPREADSHEET_ID)
+          sheet = spreadsheet.sheet1
+
+          # F列（6列目）を「処理済」に更新
+          sheet.update_cell(ROW_INDEX, 6, "処理済")
+          print(f"✅ 行 {ROW_INDEX} のステータスを「処理済」に更新しました（タイトル: {TITLE}）")
+          PYEOF
+          python update_status.py
+
+      - name: pending_applications.json を更新する
+        env:
+          GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+          SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
+        run: |
+          cat << 'PYEOF' > rebuild_json.py
+          import os
+          import json
+          import gspread
+          from google.oauth2.service_account import Credentials
+          from datetime import datetime, timedelta
+          import pytz
+
+          GOOGLE_CREDENTIALS_JSON = os.environ.get("GOOGLE_CREDENTIALS")
+          SPREADSHEET_ID = os.environ.get("SPREADSHEET_ID")
+
+          creds_dict = json.loads(GOOGLE_CREDENTIALS_JSON)
+          scopes = [
+              "https://spreadsheets.google.com/feeds",
+              "https://www.googleapis.com/auth/spreadsheets",
+              "https://www.googleapis.com/auth/drive"
+          ]
+          creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
+          client = gspread.authorize(creds)
+
+          spreadsheet = client.open_by_key(SPREADSHEET_ID)
+          sheet = spreadsheet.sheet1
+          all_rows = sheet.get_all_values()
+
+          pending = []
+          for row in all_rows[1:]:  # ヘッダー行をスキップ
+              if len(row) >= 6 and row[5] == "未処理":
+                  pending.append({
+                      "title": row[0],
+                      "power_on": row[1],
+                      "power_off": row[2],
+                      "chiten_code": row[3],
+                      "hosoku1": row[4],
+                      "row_index": all_rows.index(row) + 1
+                  })
+
+          jst = pytz.timezone("Asia/Tokyo")
+          output = {
+              "generated_at": datetime.now(jst).strftime("%Y-%m-%d %H:%M:%S"),
+              "target_date": str(datetime.now(jst).date() + timedelta(days=1)),
+              "applications": pending
+          }
+
+          with open("pending_applications.json", "w", encoding="utf-8") as f:
+              json.dump(output, f, ensure_ascii=False, indent=2)
+
+          print(f"✅ pending_applications.json を更新しました（未処理: {len(pending)}件）")
+          PYEOF
+          python rebuild_json.py
+
+      - name: JSONファイルをコミットしてプッシュ
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add pending_applications.json
+          git diff --staged --quiet || git commit -m "complete: 申請を処理済みにマーク (行 ${{ inputs.row_index }})"
+          git push
+
+      - name: 完了通知
+        if: always()
+        run: echo "ステータス更新処理が完了しました。"

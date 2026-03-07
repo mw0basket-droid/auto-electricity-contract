@@ -180,6 +180,24 @@ jobs:
                   traceback.print_exc()
                   return []
 
+          # --- スプレッドシートから未処理行を全件取得する関数 ---
+          def get_pending_from_sheet(client):
+              spreadsheet = client.open_by_key(SPREADSHEET_ID)
+              sheet = spreadsheet.sheet1
+              all_rows = sheet.get_all_values()
+              pending = []
+              for row in all_rows[1:]:  # ヘッダー行をスキップ
+                  if len(row) >= 6 and row[5] == "未処理":
+                      pending.append({
+                          "title": row[0],
+                          "power_on": row[1],
+                          "power_off": row[2],
+                          "chiten_code": row[3],
+                          "hosoku1": row[4],
+                          "row_index": all_rows.index(row) + 1  # 1-indexed
+                      })
+              return pending
+
           # --- メイン処理 ---
           if __name__ == "__main__":
               print("--- Calendar to Google Sheets Sync Start ---")
@@ -203,22 +221,23 @@ jobs:
                   traceback.print_exc()
                   exit(1)
 
+              # 明日のイベントをカレンダーから取得してスプレッドシートに追加
               events = get_calendar_events()
-              pending_applications = []
-
               if not events:
                   print("明日の対象イベントはありません。")
               else:
                   print(f"{len(events)}件のイベントを処理します。")
                   for event in events:
-                      event_data = add_row_to_sheet(
+                      add_row_to_sheet(
                           client,
                           event['summary'],
                           event['start_date'],
                           event['parsed']
                       )
-                      if event_data:
-                          pending_applications.append(event_data)
+
+              # スプレッドシートから「未処理」の行を全件取得
+              pending_applications = get_pending_from_sheet(client)
+              print(f"未処理件数: {len(pending_applications)}件")
 
               # Chrome拡張機能用のJSONファイルを出力
               from datetime import datetime as dt
