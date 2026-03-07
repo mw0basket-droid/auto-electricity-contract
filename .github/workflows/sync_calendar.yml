@@ -132,8 +132,7 @@ jobs:
                   "未処理",
                   now_jst
               ]
-              # 新しい行をヘッダーの直下（2行目）に挿入（新しいものを上に表示）
-              sheet.insert_row(new_row, 2)
+              sheet.append_row(new_row)
               print(f"✅ Sheets追加成功: {title} (通電開始: {power_on_str})")
               return {
                   "title": title,
@@ -181,24 +180,6 @@ jobs:
                   traceback.print_exc()
                   return []
 
-          # --- スプレッドシートから未処理行を全件取得する関数 ---
-          def get_pending_from_sheet(client):
-              spreadsheet = client.open_by_key(SPREADSHEET_ID)
-              sheet = spreadsheet.sheet1
-              all_rows = sheet.get_all_values()
-              pending = []
-              for row in all_rows[1:]:  # ヘッダー行をスキップ
-                  if len(row) >= 6 and row[5] == "未処理":
-                      pending.append({
-                          "title": row[0],
-                          "power_on": row[1],
-                          "power_off": row[2],
-                          "chiten_code": row[3],
-                          "hosoku1": row[4]
-                          # row_indexは行挿入でずれるため使わず、title+power_onで特定する
-                      })
-              return pending
-
           # --- メイン処理 ---
           if __name__ == "__main__":
               print("--- Calendar to Google Sheets Sync Start ---")
@@ -222,23 +203,22 @@ jobs:
                   traceback.print_exc()
                   exit(1)
 
-              # 明日のイベントをカレンダーから取得してスプレッドシートに追加
               events = get_calendar_events()
+              pending_applications = []
+
               if not events:
                   print("明日の対象イベントはありません。")
               else:
                   print(f"{len(events)}件のイベントを処理します。")
                   for event in events:
-                      add_row_to_sheet(
+                      event_data = add_row_to_sheet(
                           client,
                           event['summary'],
                           event['start_date'],
                           event['parsed']
                       )
-
-              # スプレッドシートから「未処理」の行を全件取得
-              pending_applications = get_pending_from_sheet(client)
-              print(f"未処理件数: {len(pending_applications)}件")
+                      if event_data:
+                          pending_applications.append(event_data)
 
               # Chrome拡張機能用のJSONファイルを出力
               from datetime import datetime as dt
