@@ -7,13 +7,15 @@
     "activeTab",
     "tabs",
     "scripting",
-    "storage",
-    "unlimitedStorage"
+    "storage"
   ],
   "host_permissions": [
     "https://kentaku.pint-cloud.com/*",
     "https://raw.githubusercontent.com/*"
   ],
+  "background": {
+    "service_worker": "background.js"
+  },
   "action": {
     "default_popup": "popup.html",
     "default_icon": {

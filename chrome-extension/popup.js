@@ -1,16 +1,10 @@
-// popup.js v13
-// 根本原因修正:
-//   sessionStorage は executeScript(MAIN world) と content.js(isolated world) で
-//   同じオブジェクトを参照しているが、ページ遷移のたびにクリアされる。
-//   さらに popup.js から executeScript で書き込んだ sessionStorage が
-//   content.js から見えないケースがあることが判明。
-//
-//   解決策: chrome.storage.session を使う。
-//   chrome.storage.session はタブをまたいで共有され、ブラウザセッション中は保持される。
-//   content.js は chrome.storage.session.get() でデータを取得する。
+// popup.js v15
+// データの受け渡し方法:
+//   popup.js → background.js (saveAppData) → content.js (getAppData)
+//   background.js が Service Worker として常駐し、データを一時保存する。
+//   content.js はページ読み込み後に background.js に問い合わせてデータを取得する。
 
 const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/mw0basket-droid/auto-electricity-contract/main/pending_applications.json';
-const STORAGE_KEY = 'pint_auto_fill';
 const PINT_SUPPLYPOINT_URL = 'https://kentaku.pint-cloud.com/supplypoint/';
 
 function showMessage(text, type) {
@@ -55,72 +49,69 @@ function renderApplications(data) {
 
 async function startAutoFill(app) {
   showMessage('処理を開始しています...', 'info');
-  console.log('[popup v13] startAutoFill app=' + JSON.stringify(app));
+  console.log('[popup v15] startAutoFill app=' + JSON.stringify(app));
 
-  // Step1: PinT タブを探す or 作成する
+  // Step1: background.js にデータを保存する
+  try {
+    const saveResp = await chrome.runtime.sendMessage({ action: 'saveAppData', data: app });
+    console.log('[popup v15] saveAppData応答: ' + JSON.stringify(saveResp));
+  } catch (e) {
+    console.log('[popup v15] saveAppData失敗: ' + e.message);
+    showMessage('エラー: データ保存失敗 (' + e.message + ')', 'error');
+    return;
+  }
+
+  // Step2: PinT タブを探す or 作成する
   const tabs = await chrome.tabs.query({ url: 'https://kentaku.pint-cloud.com/*' });
   let targetTabId;
   let targetTabUrl;
 
   if (tabs.length === 0) {
-    console.log('[popup v13] PinTタブなし → 新規作成');
+    console.log('[popup v15] PinTタブなし → 新規作成');
     showMessage('でんき地点管理ページを開いています...', 'info');
     const newTab = await chrome.tabs.create({ url: PINT_SUPPLYPOINT_URL });
     targetTabId = newTab.id;
     await waitForTabLoad(targetTabId);
     const updatedTab = await chrome.tabs.get(targetTabId);
     targetTabUrl = updatedTab.url || '';
-    console.log('[popup v13] 新規タブURL=' + targetTabUrl);
+    console.log('[popup v15] 新規タブURL=' + targetTabUrl);
   } else {
     targetTabId = tabs[0].id;
     targetTabUrl = tabs[0].url || '';
     await chrome.tabs.update(targetTabId, { active: true });
-    console.log('[popup v13] PinTタブ発見 tabId=' + targetTabId + ' url=' + targetTabUrl);
+    console.log('[popup v15] PinTタブ発見 tabId=' + targetTabId + ' url=' + targetTabUrl);
   }
 
-  // Step2: /supplypoint/ 系にいない場合のみ移動する
+  // Step3: /supplypoint/ 系にいない場合のみ移動する
   const isSupplyPointPage = targetTabUrl.includes('kentaku.pint-cloud.com/supplypoint');
   if (!isSupplyPointPage) {
-    console.log('[popup v13] /supplypoint/ 以外にいるため移動: ' + targetTabUrl);
+    console.log('[popup v15] /supplypoint/ 以外にいるため移動: ' + targetTabUrl);
     showMessage('でんき地点管理ページに移動中...', 'info');
     await chrome.tabs.update(targetTabId, { url: PINT_SUPPLYPOINT_URL });
     await waitForTabLoad(targetTabId);
     const updatedTab = await chrome.tabs.get(targetTabId);
     targetTabUrl = updatedTab.url || '';
-    console.log('[popup v13] 移動後URL=' + targetTabUrl);
+    console.log('[popup v15] 移動後URL=' + targetTabUrl);
   } else {
-    console.log('[popup v13] /supplypoint/ 系にいます: ' + targetTabUrl);
+    console.log('[popup v15] /supplypoint/ 系にいます: ' + targetTabUrl);
   }
 
-  // Step3: chrome.storage.session に申請データを書き込む
-  // chrome.storage.session はページ遷移をまたいで保持され、
-  // content.js から chrome.storage.session.get() で読み取れる
-  const stateData = { step: 'auto', app: app };
-  try {
-    await chrome.storage.session.set({ [STORAGE_KEY]: stateData });
-    const check = await chrome.storage.session.get(STORAGE_KEY);
-    console.log('[popup v13] chrome.storage.session書き込み完了: ' + JSON.stringify(check));
-  } catch (e) {
-    console.log('[popup v13] chrome.storage.session書き込み失敗: ' + e.message);
-    showMessage('エラー: データ保存失敗 (' + e.message + ')', 'error');
-    return;
-  }
-
-  // Step4: sendMessage で content.js に処理開始を通知する
-  console.log('[popup v13] sendMessage送信 tabId=' + targetTabId);
+  // Step4: content.js に startFill メッセージを送る
+  // content.js は background.js にデータを問い合わせて処理を開始する
+  console.log('[popup v15] sendMessage送信 tabId=' + targetTabId);
   let messageSent = false;
   try {
     const response = await chrome.tabs.sendMessage(targetTabId, { action: 'startFill' });
-    console.log('[popup v13] sendMessage応答: ' + JSON.stringify(response));
+    console.log('[popup v15] sendMessage応答: ' + JSON.stringify(response));
     messageSent = true;
     showMessage('自動入力を開始しました！', 'success');
   } catch (e) {
-    console.log('[popup v13] sendMessage失敗（content.jsが未ロードの可能性）: ' + e.message);
+    console.log('[popup v15] sendMessage失敗（content.jsが未ロードの可能性）: ' + e.message);
   }
 
   // sendMessage が失敗した場合はリロードで対応
   if (!messageSent) {
-    console.log('[popup v13] リロードで対応します');
+    console.log('[popup v15] リロードで対応します');
     showMessage('自動入力を開始しました！（ページをリロードします）', 'info');
     await chrome.tabs.reload(targetTabId);
   }
