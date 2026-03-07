@@ -151,18 +151,9 @@ async function markComplete(data, index, btn) {
       throw new Error('ファイル更新失敗: HTTP ' + updateResp.status + ' ' + errBody);
     }
 
-    // UI を更新（該当アイテムをグレーアウト）
-    const item = document.querySelector(`.application-item[data-index="${index}"]`);
-    if (item) {
-      item.classList.add('done');
-      item.querySelector('.btn-start').style.display = 'none';
-      btn.textContent = '✓ 完了';
-      btn.disabled = true;
-    }
-
-    // data を更新してリストを再描画
-    data.applications = newApplications;
-    showMessage('「' + data.applications[index] ? '' : '申請' + '」をリストから削除しました', 'success');
+    // リストを再描画（削除後の最新データで）
+    const updatedData = { ...data, applications: newApplications };
+    renderApplications(updatedData);
     showMessage('リストから削除しました', 'success');
 
   } catch (e) {
