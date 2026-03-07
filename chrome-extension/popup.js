@@ -1,14 +1,16 @@
-// popup.js v8
-// 設計方針（シンプル・確実）:
-//   1. PinTタブを /supplypoint/ に移動（必要な場合のみ）
-//   2. ページ読み込み完了を待つ
+// popup.js v9
+// 設計方針（シンプル・確実・安全）:
+//   現在どのページにいても、必ず /supplypoint/ に移動してから処理を開始する。
+//   これにより「絞込後ページでリロード → sessionStorageが消える」問題を完全に回避する。
+//
+// 処理フロー:
+//   1. PinTタブを /supplypoint/ に移動（現在のURLに関わらず常に移動）
+//   2. ページ読み込み完了を待つ（800ms余裕を持つ）
 //   3. executeScript (world: MAIN) で sessionStorage に書き込む
 //   4. chrome.tabs.reload() でリロードする
 //   → content.js がリロード後に sessionStorage を読んで処理を開始する
 //
-// sendMessage は使わない（タイミング問題が発生するため）
-// リロード時に sessionStorage が消えないことは Chrome の仕様で保証されている
-// （同一オリジン内のリロードでは sessionStorage は保持される）
+// sendMessage は使わない（タイミング問題が発生するため廃止）
 
 const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/mw0basket-droid/auto-electricity-contract/main/pending_applications.json';
 const STORAGE_KEY = 'pint_auto_fill';
@@ -62,36 +64,27 @@ async function startAutoFill(app) {
   let targetTabId;
 
   if (tabs.length === 0) {
-    // PinTタブがない → 新規作成して /supplypoint/ を開く
     const newTab = await chrome.tabs.create({ url: PINT_SUPPLYPOINT_URL });
     targetTabId = newTab.id;
     showMessage('PinTを開いています...', 'info');
     await waitForTabLoad(targetTabId);
   } else {
     targetTabId = tabs[0].id;
-    const currentUrl = tabs[0].url || '';
-
-    // /supplypoint/ の検索フォームでない場合は移動する
-    // 正規表現: /supplypoint/ または /supplypoint/?... のみ（数字IDを含まない）
-    const isAtSearchForm = /^https:\/\/kentaku\.pint-cloud\.com\/supplypoint\/([\?#].*)?$/.test(currentUrl);
-
-    if (!isAtSearchForm) {
-      console.log('[popup v8] 現在のURL: ' + currentUrl + ' → /supplypoint/ に移動します');
-      await chrome.tabs.update(targetTabId, { url: PINT_SUPPLYPOINT_URL });
-      showMessage('でんき地点管理ページに移動中...', 'info');
-      await waitForTabLoad(targetTabId);
-    } else {
-      console.log('[popup v8] 既に /supplypoint/ にいます: ' + currentUrl);
-    }
-
     await chrome.tabs.update(targetTabId, { active: true });
+
+    // 現在のURLに関わらず、必ず /supplypoint/ に移動する
+    // これにより「絞込後ページでリロード → sessionStorageが消える」問題を回避
+    const currentUrl = tabs[0].url || '';
+    console.log('[popup v9] 現在のURL: ' + currentUrl + ' → /supplypoint/ に移動します');
+    await chrome.tabs.update(targetTabId, { url: PINT_SUPPLYPOINT_URL });
+    showMessage('でんき地点管理ページに移動中...', 'info');
+    await waitForTabLoad(targetTabId);
   }
 
   // Step2: MAIN world で sessionStorage に書き込む
   // world: 'MAIN' を指定することで、content script (ISOLATED world) からも
   // 同じ window.sessionStorage を参照できる
   const stateData = JSON.stringify({ step: 'search', app: app });
-  let writeOk = false;
   try {
     const results = await chrome.scripting.executeScript({
       target: { tabId: targetTabId },
@@ -100,7 +93,7 @@ async function startAutoFill(app) {
         try {
           sessionStorage.setItem(key, value);
           const check = sessionStorage.getItem(key);
-          return check === value ? 'ok' : 'mismatch';
+          return check === value ? 'ok' : 'mismatch:got=' + check;
         } catch (e) {
           return 'error:' + e.message;
         }
@@ -108,10 +101,8 @@ async function startAutoFill(app) {
       args: [STORAGE_KEY, stateData]
     });
     const result = results && results[0] && results[0].result;
-    console.log('[popup v8] sessionStorage書き込み結果: ' + result);
-    if (result === 'ok') {
-      writeOk = true;
-    } else {
+    console.log('[popup v9] sessionStorage書き込み結果: ' + result);
+    if (result !== 'ok') {
       showMessage('エラー: sessionStorage書き込み失敗 (' + result + ')', 'error');
       return;
     }
@@ -121,9 +112,8 @@ async function startAutoFill(app) {
   }
 
   // Step3: リロードする
-  // リロード後に content.js が起動し、sessionStorage を読んで処理を開始する
-  // Chrome の仕様: 同一オリジン内のリロードでは sessionStorage は保持される
-  console.log('[popup v8] リロードします → content.js が sessionStorage を読んで処理開始');
+  // /supplypoint/ にいる状態でリロードするため、sessionStorage は確実に保持される
+  console.log('[popup v9] リロードします → content.js が sessionStorage を読んで処理開始');
   showMessage('自動入力を開始しました！', 'success');
   await chrome.tabs.reload(targetTabId);
 }
@@ -133,7 +123,7 @@ function waitForTabLoad(tabId) {
     const listener = (id, changeInfo) => {
       if (id === tabId && changeInfo.status === 'complete') {
         chrome.tabs.onUpdated.removeListener(listener);
-        // ページが安定するまで少し待つ
+        // ページのJSが初期化されるまで少し待つ
         setTimeout(resolve, 800);
       }
     };
