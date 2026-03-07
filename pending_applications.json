@@ -1,7 +1,28 @@
 {
-  "generated_at": "2026-03-07 23:53:05",
-  "target_date": "2026-03-08",
+  "generated_at": "2026-03-08 08:58:41",
+  "target_date": "2026-03-09",
   "applications": [
+    {
+      "title": "フェリシア・グレイス 101",
+      "power_on": "2026-03-10",
+      "power_off": "2026-04-09",
+      "chiten_code": "015961401",
+      "hosoku1": "01010"
+    },
+    {
+      "title": "プリマヴェーラST A 201",
+      "power_on": "2026-03-10",
+      "power_off": "2026-04-09",
+      "chiten_code": "014391401",
+      "hosoku1": "02010"
+    },
+    {
+      "title": "TKハウス 103",
+      "power_on": "2026-03-10",
+      "power_off": "2026-04-09",
+      "chiten_code": "025021501",
+      "hosoku1": "01030"
+    },
     {
       "title": "TKハウス 103",
       "power_on": "2026-03-16",
