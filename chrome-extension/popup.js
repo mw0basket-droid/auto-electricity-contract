@@ -1,25 +1,11 @@
-// popup.js v5
+// popup.js v6
 // 設計方針:
-//   sessionStorage はページ遷移（別URLへの移動）でもオリジンが同じなら保持される。
-//   しかし chrome.tabs.update(url) → waitForTabLoad → executeScript → reload の順では
-//   「移動後のページ」に書き込んでからリロードするため二重リロードになる。
-//
-//   新方式:
-//   1. タブを /supplypoint/ に移動させる（必要な場合のみ）
-//   2. 移動完了後、executeScript で sessionStorage に書き込む
-//   3. リロードは行わない（content.js は既に起動済みで startFill メッセージを受け取れる）
-//   4. sendMessage で startFill を送る
-//   5. content.js が startFill を受け取れなかった場合（タイムアウト）はリロードする
-//
-//   ただし、今回の根本問題は「1回目のボタン押下時に content.js が startFill を受け取れない」こと。
-//   これは /supplypoint/ に移動した直後に sendMessage しているためで、
-//   content.js の起動が完了する前にメッセージが届いている。
-//
-//   最終解決策:
-//   - /supplypoint/ に移動してページ読み込み完了を待つ
-//   - executeScript で sessionStorage に書き込む（これはページ読み込み完了後なので確実）
-//   - さらに executeScript で resumeFromStorage() を直接呼び出す
-//   - これにより sendMessage もリロードも不要になる
+//   1. PinTタブを /supplypoint/ に移動させる（必要な場合のみ）
+//   2. ページ読み込み完了を待つ
+//   3. executeScript で sessionStorage に書き込む
+//   4. sendMessage(startFill) を送る → content.js が受け取って即時実行
+//   ※ sendMessage が失敗する場合はない（ページ読み込み完了後に送るため）
+//   ※ リロードは使わない（sessionStorage が消える可能性があるため）
 
 const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/mw0basket-droid/auto-electricity-contract/main/pending_applications.json';
 const STORAGE_KEY = 'pint_auto_fill';
@@ -83,75 +69,55 @@ async function startAutoFill(app) {
     const currentUrl = tabs[0].url || '';
 
     // /supplypoint/ の検索フォームでない場合は移動
-    const isSearchForm = currentUrl.startsWith(PINT_SUPPLYPOINT_URL) &&
-      !/\/supplypoint\/\d+\//.test(currentUrl) &&
-      !currentUrl.includes('/turn_and_termination');
+    const isSearchForm = /^https:\/\/kentaku\.pint-cloud\.com\/supplypoint\/(\?.*)?$/.test(currentUrl) &&
+      !/\/supplypoint\/\d+\//.test(currentUrl);
 
     if (!isSearchForm) {
-      // 別ページにいる場合: /supplypoint/ に移動してから処理
+      console.log('[popup] 現在のURL: ' + currentUrl + ' → /supplypoint/ に移動');
       await chrome.tabs.update(targetTabId, { url: PINT_SUPPLYPOINT_URL });
       showMessage('でんき地点管理ページに移動中...', 'info');
       await waitForTabLoad(targetTabId);
+    } else {
+      console.log('[popup] 既に /supplypoint/ にいます: ' + currentUrl);
     }
 
     await chrome.tabs.update(targetTabId, { active: true });
   }
 
   // Step2: executeScript で sessionStorage に書き込む
-  // （ページ読み込み完了後なので確実に書き込める）
   const stateData = JSON.stringify({ step: 'search', app: app });
   try {
-    await chrome.scripting.executeScript({
+    const results = await chrome.scripting.executeScript({
       target: { tabId: targetTabId },
       func: (key, value) => {
         sessionStorage.setItem(key, value);
-        console.log('[PinT popup] sessionStorage書き込み完了');
-        // 確認
         const check = sessionStorage.getItem(key);
-        console.log('[PinT popup] 確認: ' + (check ? '成功 len=' + check.length : '失敗'));
+        return check ? 'ok:' + check.length : 'fail';
       },
       args: [STORAGE_KEY, stateData]
     });
-    console.log('[popup] sessionStorage書き込み成功');
+    const result = results && results[0] && results[0].result;
+    console.log('[popup] sessionStorage書き込み結果: ' + result);
+    if (!result || result === 'fail') {
+      showMessage('エラー: sessionStorage書き込み失敗', 'error');
+      return;
+    }
   } catch (e) {
     showMessage('エラー: ' + e.message, 'error');
     return;
   }
 
-  // Step3: executeScript で content.js の resumeFromStorage を直接呼び出す
-  // これにより sendMessage もリロードも不要
+  // Step3: sendMessage で content.js に startFill を送る
+  // （ページ読み込み完了後なので content.js は確実に起動している）
   try {
-    const results = await chrome.scripting.executeScript({
-      target: { tabId: targetTabId },
-      func: () => {
-        // content.js が定義した resumeFromStorage を呼び出す
-        if (typeof resumeFromStorage === 'function') {
-          console.log('[PinT popup] resumeFromStorage を直接呼び出し');
-          resumeFromStorage();
-          return 'called';
-        } else {
-          console.log('[PinT popup] resumeFromStorage が見つからない → sendMessage にフォールバック');
-          return 'not_found';
-        }
-      }
-    });
-
-    const result = results && results[0] && results[0].result;
-    if (result === 'called') {
-      showMessage('自動入力を開始しました！', 'success');
-    } else {
-      // content.js がまだ起動していない場合は sendMessage を試みる
-      showMessage('自動入力を開始します...', 'success');
-      try {
-        await chrome.tabs.sendMessage(targetTabId, { action: 'startFill', app: app });
-      } catch (e2) {
-        // sendMessage も失敗した場合はリロード
-        console.log('[popup] sendMessage失敗、リロードします');
-        await chrome.tabs.reload(targetTabId);
-      }
-    }
+    const response = await chrome.tabs.sendMessage(targetTabId, { action: 'startFill', app: app });
+    console.log('[popup] sendMessage応答: ' + JSON.stringify(response));
+    showMessage('自動入力を開始しました！', 'success');
   } catch (e) {
-    showMessage('エラー: ' + e.message, 'error');
+    // sendMessage が失敗した場合（content.js が起動していない）
+    console.log('[popup] sendMessage失敗: ' + e.message + ' → リロードします');
+    showMessage('ページをリロードして再試行します...', 'info');
+    await chrome.tabs.reload(targetTabId);
   }
 }
 
@@ -160,7 +126,8 @@ function waitForTabLoad(tabId) {
     const listener = (id, changeInfo) => {
       if (id === tabId && changeInfo.status === 'complete') {
         chrome.tabs.onUpdated.removeListener(listener);
-        setTimeout(resolve, 800);
+        // ページが安定するまで待つ（content.js の起動を待つ）
+        setTimeout(resolve, 1000);
       }
     };
     chrome.tabs.onUpdated.addListener(listener);
