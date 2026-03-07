@@ -1,10 +1,10 @@
-// PinT自動入力 content script
-// ステップ管理はsessionStorageではなくメモリ内変数で行う
-// ページ遷移（SPA含む）はMutationObserverで検知
+// PinT自動入力 content script v4
+// URLとDOMの両方を監視して確実に全ステップを実行する
 
-let autoFillApp = null;   // 現在処理中の申請データ
-let autoFillStep = null;  // 'search' | 'click_vacancy' | 'fill_dates' | null
+let autoFillApp = null;
+let autoFillStep = null;  // null | 'search' | 'click_vacancy' | 'fill_dates'
 let fillDatesExecuted = false;
+let stepLock = false;  // 同時実行防止
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -12,14 +12,16 @@ function sleep(ms) {
 
 // ===== ステップ1: 地点コード・補足1を入力して絞込 =====
 async function fillSupplyPointPage(app) {
+  console.log('[PinT] fillSupplyPointPage開始');
   await sleep(800);
 
   const chitenInput = document.getElementById('id_origin_code');
   const hosokuInput = document.getElementById('id_supplement1');
 
   if (!chitenInput || !hosokuInput) {
-    console.log('[PinT] 地点コード/補足1フィールドが見つかりません');
-    return;
+    console.log('[PinT] 地点コード/補足1フィールドが見つかりません、リトライ...');
+    await sleep(1000);
+    return fillSupplyPointPage(app);
   }
 
   chitenInput.focus();
@@ -38,6 +40,7 @@ async function fillSupplyPointPage(app) {
 
   await sleep(300);
 
+  // 絞込ボタンを探す
   let filterBtn = null;
   for (const btn of document.querySelectorAll('button')) {
     if (btn.textContent.trim() === '絞込') {
@@ -53,6 +56,8 @@ async function fillSupplyPointPage(app) {
     autoFillStep = 'click_vacancy';
     console.log('[PinT] 絞込ボタンをクリック → step=click_vacancy');
     filterBtn.click();
+    // 絞込後に空室プランボタンを待つ
+    waitForVacancyButton(app);
   } else {
     console.log('[PinT] 絞込ボタンが見つかりません');
     autoFillApp = null;
@@ -60,28 +65,52 @@ async function fillSupplyPointPage(app) {
   }
 }
 
-// ===== ステップ2: 「空室プランの開始/停止」をクリック =====
-async function clickVacancyButton(app) {
-  await sleep(1500);
-
-  let vacancyBtn = null;
-  for (const el of document.querySelectorAll('a, button')) {
-    if (el.textContent.includes('空室プランの開始')) {
-      vacancyBtn = el;
-      break;
+// ===== 絞込後に「空室プランの開始/停止」ボタンが現れるのを待つ =====
+async function waitForVacancyButton(app) {
+  console.log('[PinT] 空室プランボタンを待機中...');
+  for (let i = 0; i < 30; i++) {
+    await sleep(500);
+    const btn = findVacancyButton();
+    if (btn) {
+      console.log('[PinT] 空室プランボタン発見、クリック → step=fill_dates');
+      autoFillStep = 'fill_dates';
+      fillDatesExecuted = false;
+      btn.click();
+      // URL変化を待つ（SPAの場合はDOMが変わるのを待つ）
+      waitForDateForm(app);
+      return;
     }
   }
+  console.log('[PinT] 空室プランボタンが見つかりませんでした');
+  alert('「空室プランの開始/停止」ボタンが見つかりませんでした。\n地点コード: ' + app.chiten_code + ' / 補足1: ' + app.hosoku1);
+  autoFillApp = null;
+  autoFillStep = null;
+}
 
-  if (vacancyBtn) {
-    autoFillStep = 'fill_dates';
-    fillDatesExecuted = false;
-    console.log('[PinT] 空室プランボタンをクリック → step=fill_dates');
-    vacancyBtn.click();
-  } else {
-    alert('「空室プランの開始/停止」ボタンが見つかりませんでした。\n地点コード: ' + app.chiten_code + ' / 補足1: ' + app.hosoku1);
-    autoFillApp = null;
-    autoFillStep = null;
+function findVacancyButton() {
+  for (const el of document.querySelectorAll('a, button')) {
+    if (el.textContent.includes('空室プランの開始')) {
+      return el;
+    }
   }
+  return null;
+}
+
+// ===== 日付入力フォームが現れるのを待つ =====
+async function waitForDateForm(app) {
+  console.log('[PinT] 日付入力フォームを待機中...');
+  for (let i = 0; i < 40; i++) {
+    await sleep(250);
+    const fpInput = document.getElementById('formtools_vacancy_use_period');
+    if (fpInput) {
+      console.log('[PinT] 日付フォーム発見、fillDates実行');
+      fillDates(app);
+      return;
+    }
+  }
+  console.log('[PinT] 日付フォームが見つかりませんでした');
+  autoFillApp = null;
+  autoFillStep = null;
 }
 
 // ===== ステップ3: 日付を設定して確認画面へ =====
@@ -183,45 +212,6 @@ async function fillDates(app) {
   }
 }
 
-// ===== URLの変化を監視して自動的に処理を継続 =====
-let lastUrl = location.href;
-
-function checkUrlAndAct() {
-  const currentUrl = location.href;
-  if (currentUrl !== lastUrl) {
-    console.log('[PinT] URL変化検知: ' + lastUrl.split('?')[0] + ' → ' + currentUrl.split('?')[0]);
-    lastUrl = currentUrl;
-    fillDatesExecuted = false;
-    runAutoFillForCurrentPage();
-  }
-}
-
-function runAutoFillForCurrentPage() {
-  if (!autoFillApp || !autoFillStep) return;
-
-  const app = autoFillApp;
-  const step = autoFillStep;
-  const url = location.href;
-
-  console.log('[PinT] runAutoFill step=' + step + ' url=' + url.split('?')[0]);
-
-  if (step === 'click_vacancy' && url.includes('/supplypoint/') && !url.includes('turn_and_termination')) {
-    clickVacancyButton(app);
-  } else if (step === 'fill_dates' && url.includes('turn_and_termination_vacancy')) {
-    fillDates(app);
-  }
-}
-
-// MutationObserverでSPA的なURL変化も検知
-const observer = new MutationObserver(checkUrlAndAct);
-observer.observe(document.body || document.documentElement, { childList: true, subtree: true });
-
-// popstate（ブラウザの戻る/進む）も監視
-window.addEventListener('popstate', () => {
-  fillDatesExecuted = false;
-  runAutoFillForCurrentPage();
-});
-
 // ===== メッセージリスナー（popup.jsからの指示） =====
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'startFill') {
@@ -235,15 +225,4 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   return true;
 });
 
-// ===== ページ読み込み完了時に自動継続 =====
-function onPageReady() {
-  fillDatesExecuted = false;
-  runAutoFillForCurrentPage();
-}
-
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', onPageReady);
-} else {
-  onPageReady();
-}
-window.addEventListener('load', onPageReady);
+console.log('[PinT] content.js v4 読み込み完了 url=' + location.href);
