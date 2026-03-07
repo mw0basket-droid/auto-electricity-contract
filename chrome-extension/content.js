@@ -1,126 +1,155 @@
-
 // PinT自動入力 content script
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+// ===== ステップ1: でんき地点管理ページで地点コード・補足1を入力して絞込 =====
 async function fillSupplyPointPage(app) {
-  // でんき地点管理ページかチェック
-  if (!location.href.includes('/supplypoint/')) {
-    location.href = 'https://kentaku.pint-cloud.com/supplypoint/';
+  await sleep(800);
+
+  const chitenInput = document.getElementById('id_origin_code');
+  const hosokuInput = document.getElementById('id_supplement1');
+
+  if (!chitenInput || !hosokuInput) {
+    console.log('[PinT] 地点コード/補足1フィールドが見つかりません');
     return;
   }
-  
-  await sleep(500);
-  
+
   // 地点コードを入力
-  const chitenInput = document.getElementById('id_origin_code');
-  if (chitenInput) {
-    chitenInput.value = app.chiten_code;
-    chitenInput.dispatchEvent(new Event('input', {bubbles: true}));
-    chitenInput.dispatchEvent(new Event('change', {bubbles: true}));
-  }
-  
+  chitenInput.focus();
+  chitenInput.value = app.chiten_code;
+  chitenInput.dispatchEvent(new Event('input', { bubbles: true }));
+  chitenInput.dispatchEvent(new Event('change', { bubbles: true }));
+  chitenInput.blur();
+
+  await sleep(200);
+
   // 補足1を入力
-  const hosokuInput = document.getElementById('id_supplement1');
-  if (hosokuInput) {
-    hosokuInput.value = app.hosoku1;
-    hosokuInput.dispatchEvent(new Event('input', {bubbles: true}));
-    hosokuInput.dispatchEvent(new Event('change', {bubbles: true}));
-  }
-  
+  hosokuInput.focus();
+  hosokuInput.value = app.hosoku1;
+  hosokuInput.dispatchEvent(new Event('input', { bubbles: true }));
+  hosokuInput.dispatchEvent(new Event('change', { bubbles: true }));
+  hosokuInput.blur();
+
   await sleep(300);
-  
+
   // 絞込ボタンをクリック
-  const buttons = document.querySelectorAll('button[type="submit"], input[type="submit"]');
   let filterBtn = null;
-  for (const btn of buttons) {
-    if (btn.textContent.includes('絞込') || btn.value === '絞込') {
+  for (const btn of document.querySelectorAll('button')) {
+    if (btn.textContent.trim() === '絞込') {
       filterBtn = btn;
       break;
     }
   }
   if (!filterBtn) {
-    // フォームのsubmitボタンを探す
-    const form = document.querySelector('form');
-    if (form) {
-      const submitBtns = form.querySelectorAll('button, input[type="submit"]');
-      filterBtn = submitBtns[submitBtns.length - 1];
-    }
+    filterBtn = document.querySelector('button[type="submit"]');
   }
-  
+
   if (filterBtn) {
-    // 申請データをsessionStorageに保存（ページ遷移後に使用）
+    // セッションに保存してページ遷移後に継続
     sessionStorage.setItem('pint_auto_app', JSON.stringify(app));
     sessionStorage.setItem('pint_auto_step', 'find_vacancy_btn');
+    console.log('[PinT] 絞込ボタンをクリック');
     filterBtn.click();
+  } else {
+    console.log('[PinT] 絞込ボタンが見つかりません');
   }
 }
 
+// ===== ステップ2: 検索結果から「空室プランの開始/停止」をクリック =====
 async function clickVacancyButton(app) {
-  await sleep(1000);
-  
-  // 「空室プランの開始/停止」ボタンを探す
-  const allButtons = document.querySelectorAll('a, button');
+  await sleep(1500);
+
   let vacancyBtn = null;
-  
-  for (const btn of allButtons) {
-    if (btn.textContent.includes('空室プラン')) {
-      vacancyBtn = btn;
+  for (const el of document.querySelectorAll('a, button')) {
+    if (el.textContent.includes('空室プランの開始')) {
+      vacancyBtn = el;
       break;
     }
   }
-  
+
   if (vacancyBtn) {
     sessionStorage.setItem('pint_auto_step', 'fill_dates');
+    console.log('[PinT] 空室プランボタンをクリック');
     vacancyBtn.click();
   } else {
-    alert('「空室プランの開始/停止」ボタンが見つかりませんでした。\n地点コード: ' + app.chiten_code + '\n補足1: ' + app.hosoku1 + '\nで検索結果を確認してください。');
+    alert('「空室プランの開始/停止」ボタンが見つかりませんでした。\n地点コード: ' + app.chiten_code + ' / 補足1: ' + app.hosoku1);
     sessionStorage.removeItem('pint_auto_app');
     sessionStorage.removeItem('pint_auto_step');
   }
 }
 
+// ===== ステップ3: 空室プラン入力ページで日付を設定 =====
 async function fillDates(app) {
-  await sleep(1000);
-  
-  // flatpickrインスタンスを取得して日付範囲を設定
+  await sleep(1500);
+
+  console.log('[PinT] 日付入力開始 power_on=' + app.power_on + ' power_off=' + app.power_off);
+
   const fpInput = document.getElementById('formtools_vacancy_use_period');
-  
-  if (fpInput && fpInput._flatpickr) {
-    const fp = fpInput._flatpickr;
-    
-    // parseDate で Date オブジェクトを生成
-    const startDate = fp.parseDate(app.power_on, 'Y-m-d');
-    const endDate = fp.parseDate(app.power_off, 'Y-m-d');
-    
-    if (startDate && endDate) {
-      // selectedDates に直接セットして updateValue で反映
-      fp.selectedDates = [startDate, endDate];
-      fp.updateValue(true);
-      
-      // changeイベントも発火
-      fpInput.dispatchEvent(new Event('change', {bubbles: true}));
-      
-      await sleep(500);
-    } else {
-      // fallback: 個別フィールドへの直接入力
-      await fillDatesFallback(app);
-      return;
-    }
-  } else {
-    // flatpickrが見つからない場合のfallback
-    await fillDatesFallback(app);
+
+  if (!fpInput) {
+    console.log('[PinT] flatpickr入力フィールドが見つかりません');
     return;
   }
-  
-  await sleep(500);
-  
+
+  // flatpickrが初期化されるまで最大3秒待つ
+  let fp = fpInput._flatpickr;
+  let retry = 0;
+  while (!fp && retry < 15) {
+    await sleep(200);
+    fp = fpInput._flatpickr;
+    retry++;
+  }
+
+  if (fp) {
+    console.log('[PinT] flatpickr発見、日付を設定します');
+
+    // まずクリア
+    fp.clear();
+    await sleep(200);
+
+    // parseDate で Date オブジェクトを生成（タイムゾーンずれ防止のため手動パース）
+    const [sy, sm, sd] = app.power_on.split('-').map(Number);
+    const [ey, em, ed] = app.power_off.split('-').map(Number);
+    const startDate = new Date(sy, sm - 1, sd);
+    const endDate = new Date(ey, em - 1, ed);
+
+    fp.selectedDates = [startDate, endDate];
+    fp.updateValue(true);
+
+    // onChangeコールバックを手動で呼ぶ
+    if (fp.config.onChange && fp.config.onChange.length > 0) {
+      fp.config.onChange.forEach(fn => fn(fp.selectedDates, fp.input.value, fp));
+    }
+
+    await sleep(500);
+
+    console.log('[PinT] 設定後の値: ' + fpInput.value);
+    console.log('[PinT] start: ' + document.getElementById('formtools_vacancy_use_period_start')?.value);
+    console.log('[PinT] end: ' + document.getElementById('formtools_vacancy_use_period_end')?.value);
+
+  } else {
+    console.log('[PinT] flatpickrが見つかりません、フォールバック処理');
+    // フォールバック: readOnlyを外して直接入力
+    const startInput = document.getElementById('formtools_vacancy_use_period_start');
+    const endInput = document.getElementById('formtools_vacancy_use_period_end');
+    if (startInput) {
+      startInput.removeAttribute('readonly');
+      startInput.value = app.power_on;
+      startInput.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    if (endInput) {
+      endInput.removeAttribute('readonly');
+      endInput.value = app.power_off;
+      endInput.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    await sleep(500);
+  }
+
   // 確認画面へボタンをクリック
-  const allBtns = document.querySelectorAll('button');
   let confirmBtn = null;
-  for (const btn of allBtns) {
+  for (const btn of document.querySelectorAll('button')) {
     if (btn.textContent.includes('確認画面')) {
       confirmBtn = btn;
       break;
@@ -129,98 +158,54 @@ async function fillDates(app) {
   if (!confirmBtn) {
     confirmBtn = document.querySelector('button[type="submit"]');
   }
-  
+
   if (confirmBtn) {
-    sessionStorage.setItem('pint_auto_step', 'confirm');
+    sessionStorage.setItem('pint_auto_step', 'done');
+    console.log('[PinT] 確認画面へボタンをクリック');
     confirmBtn.click();
+  } else {
+    console.log('[PinT] 確認画面へボタンが見つかりません');
   }
-  
-  // セッションデータをクリア（確認画面に進んだ後）
+
   setTimeout(() => {
     sessionStorage.removeItem('pint_auto_app');
     sessionStorage.removeItem('pint_auto_step');
-  }, 2000);
+  }, 3000);
 }
 
-async function fillDatesFallback(app) {
-  // flatpickrが使えない場合の代替処理
-  const startInput = document.getElementById('formtools_vacancy_use_period_start');
-  const endInput = document.getElementById('formtools_vacancy_use_period_end');
-  
-  if (startInput) {
-    // readOnlyを一時的に解除して値を設定
-    startInput.removeAttribute('readonly');
-    startInput.value = app.power_on;
-    startInput.dispatchEvent(new Event('input', {bubbles: true}));
-    startInput.dispatchEvent(new Event('change', {bubbles: true}));
-  }
-  
-  await sleep(300);
-  
-  if (endInput) {
-    endInput.removeAttribute('readonly');
-    endInput.value = app.power_off;
-    endInput.dispatchEvent(new Event('input', {bubbles: true}));
-    endInput.dispatchEvent(new Event('change', {bubbles: true}));
-  }
-  
-  await sleep(500);
-  
-  // 確認画面へボタンをクリック
-  const allBtns = document.querySelectorAll('button');
-  let confirmBtn = null;
-  for (const btn of allBtns) {
-    if (btn.textContent.includes('確認画面')) {
-      confirmBtn = btn;
-      break;
-    }
-  }
-  if (!confirmBtn) {
-    confirmBtn = document.querySelector('button[type="submit"]');
-  }
-  
-  if (confirmBtn) {
-    sessionStorage.setItem('pint_auto_step', 'confirm');
-    confirmBtn.click();
-  }
-  
-  setTimeout(() => {
-    sessionStorage.removeItem('pint_auto_app');
-    sessionStorage.removeItem('pint_auto_step');
-  }, 2000);
-}
-
-// ページ読み込み時に自動処理を継続
+// ===== ページ読み込み時に現在のURLに応じて処理を継続 =====
 async function continueAutoFill() {
   const appData = sessionStorage.getItem('pint_auto_app');
   const step = sessionStorage.getItem('pint_auto_step');
-  
+
   if (!appData || !step) return;
-  
+
   const app = JSON.parse(appData);
-  
-  if (step === 'find_vacancy_btn' && location.href.includes('/supplypoint/')) {
+  const url = location.href;
+
+  console.log('[PinT] continueAutoFill step=' + step + ' url=' + url);
+
+  if (step === 'find_vacancy_btn' && url.includes('/supplypoint/') && !url.includes('turn_and_termination')) {
     await clickVacancyButton(app);
-  } else if (step === 'fill_dates' && location.href.includes('/turn_and_termination_vacancy')) {
+  } else if (step === 'fill_dates' && url.includes('turn_and_termination_vacancy')) {
     await fillDates(app);
   }
 }
 
-// メッセージリスナー（popup.jsからの指示を受け取る）
+// ===== メッセージリスナー（popup.jsからの指示） =====
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'startFill') {
+    console.log('[PinT] startFill受信 app=' + JSON.stringify(message.app));
     fillSupplyPointPage(message.app);
-    sendResponse({status: 'started'});
+    sendResponse({ status: 'started' });
   }
   return true;
 });
 
-// ページ読み込み時に自動処理を継続
-window.addEventListener('load', () => {
+// ===== ページ読み込み完了時に自動継続 =====
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', continueAutoFill);
+} else {
   continueAutoFill();
-});
-
-// DOMContentLoadedでも試みる
-document.addEventListener('DOMContentLoaded', () => {
-  continueAutoFill();
-});
+}
+window.addEventListener('load', continueAutoFill);

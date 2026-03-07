@@ -12,16 +12,16 @@ function showMessage(text, type) {
 function renderApplications(data) {
   const list = document.getElementById('app-list');
   const dateEl = document.getElementById('target-date');
-  
+
   if (data.target_date) {
     dateEl.textContent = '対象日: ' + data.target_date;
   }
-  
+
   if (!data.applications || data.applications.length === 0) {
     list.innerHTML = '<div class="empty-state">明日の申請予定はありません</div>';
     return;
   }
-  
+
   list.innerHTML = '';
   data.applications.forEach((app, index) => {
     const item = document.createElement('div');
@@ -36,7 +36,7 @@ function renderApplications(data) {
     `;
     list.appendChild(item);
   });
-  
+
   document.querySelectorAll('.btn-primary').forEach(btn => {
     btn.addEventListener('click', (e) => {
       const idx = parseInt(e.target.getAttribute('data-index'));
@@ -48,32 +48,52 @@ function renderApplications(data) {
 
 function startAutoFill(app) {
   showMessage('PinTタブを探しています...', 'info');
-  
-  chrome.tabs.query({url: 'https://kentaku.pint-cloud.com/*'}, (tabs) => {
+
+  chrome.tabs.query({ url: 'https://kentaku.pint-cloud.com/*' }, (tabs) => {
     if (tabs.length === 0) {
-      chrome.tabs.create({url: 'https://kentaku.pint-cloud.com/supplypoint/'}, (tab) => {
-        setTimeout(() => {
-          sendFillCommand(tab.id, app);
-        }, 2000);
+      // PinTタブがない場合: 新規タブを作成し、ロード完了後にメッセージ送信
+      chrome.tabs.create({ url: 'https://kentaku.pint-cloud.com/supplypoint/' }, (tab) => {
+        showMessage('PinTを開いています...', 'info');
+        // タブのロード完了を待ってメッセージ送信
+        const listener = (tabId, changeInfo) => {
+          if (tabId === tab.id && changeInfo.status === 'complete') {
+            chrome.tabs.onUpdated.removeListener(listener);
+            setTimeout(() => {
+              sendFillCommand(tab.id, app);
+            }, 1000);
+          }
+        };
+        chrome.tabs.onUpdated.addListener(listener);
       });
     } else {
+      // 既存のPinTタブがある場合
       const tab = tabs[0];
-      chrome.tabs.update(tab.id, {active: true});
-      chrome.tabs.sendMessage(tab.id, {action: 'startFill', app: app}, (response) => {
-        if (chrome.runtime.lastError) {
-          chrome.tabs.reload(tab.id, {}, () => {
-            setTimeout(() => sendFillCommand(tab.id, app), 2000);
-          });
-        } else {
-          showMessage('自動入力を開始しました！', 'success');
-        }
-      });
+      chrome.tabs.update(tab.id, { active: true });
+
+      // でんき地点管理ページに移動してからメッセージ送信
+      if (!tab.url.includes('/supplypoint/') || tab.url.includes('turn_and_termination')) {
+        // 別ページにいる場合はでんき地点管理に移動
+        chrome.tabs.update(tab.id, { url: 'https://kentaku.pint-cloud.com/supplypoint/' }, () => {
+          const listener = (tabId, changeInfo) => {
+            if (tabId === tab.id && changeInfo.status === 'complete') {
+              chrome.tabs.onUpdated.removeListener(listener);
+              setTimeout(() => {
+                sendFillCommand(tab.id, app);
+              }, 1000);
+            }
+          };
+          chrome.tabs.onUpdated.addListener(listener);
+        });
+      } else {
+        // 既にでんき地点管理ページにいる場合
+        sendFillCommand(tab.id, app);
+      }
     }
   });
 }
 
 function sendFillCommand(tabId, app) {
-  chrome.tabs.sendMessage(tabId, {action: 'startFill', app: app}, (response) => {
+  chrome.tabs.sendMessage(tabId, { action: 'startFill', app: app }, (response) => {
     if (chrome.runtime.lastError) {
       showMessage('エラー: ' + chrome.runtime.lastError.message, 'error');
     } else {
@@ -85,7 +105,7 @@ function sendFillCommand(tabId, app) {
 async function loadData() {
   const list = document.getElementById('app-list');
   list.innerHTML = '<div class="loading">データを読み込み中...</div>';
-  
+
   try {
     const response = await fetch(GITHUB_RAW_URL + '?t=' + Date.now());
     if (!response.ok) throw new Error('HTTP ' + response.status);

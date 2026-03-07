@@ -5,6 +5,7 @@
   "description": "Googleカレンダーの退去立会予定をPinTに自動入力します",
   "permissions": [
     "activeTab",
+    "tabs",
     "scripting",
     "storage"
   ],
