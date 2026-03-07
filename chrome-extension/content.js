@@ -83,37 +83,107 @@ async function clickVacancyButton(app) {
 }
 
 async function fillDates(app) {
-  await sleep(800);
+  await sleep(1000);
   
-  // 空室ご利用期間の開始日を入力
-  const startInput = document.getElementById('formtools_vacancy_use_period_start');
-  if (startInput) {
-    startInput.value = app.power_on;
-    startInput.dispatchEvent(new Event('input', {bubbles: true}));
-    startInput.dispatchEvent(new Event('change', {bubbles: true}));
+  // flatpickrインスタンスを取得して日付範囲を設定
+  const fpInput = document.getElementById('formtools_vacancy_use_period');
+  
+  if (fpInput && fpInput._flatpickr) {
+    const fp = fpInput._flatpickr;
+    
+    // parseDate で Date オブジェクトを生成
+    const startDate = fp.parseDate(app.power_on, 'Y-m-d');
+    const endDate = fp.parseDate(app.power_off, 'Y-m-d');
+    
+    if (startDate && endDate) {
+      // selectedDates に直接セットして updateValue で反映
+      fp.selectedDates = [startDate, endDate];
+      fp.updateValue(true);
+      
+      // changeイベントも発火
+      fpInput.dispatchEvent(new Event('change', {bubbles: true}));
+      
+      await sleep(500);
+    } else {
+      // fallback: 個別フィールドへの直接入力
+      await fillDatesFallback(app);
+      return;
+    }
+  } else {
+    // flatpickrが見つからない場合のfallback
+    await fillDatesFallback(app);
+    return;
   }
   
-  // 空室ご利用期間の終了日を入力
-  const endInput = document.getElementById('formtools_vacancy_use_period_end');
-  if (endInput) {
-    startInput.dispatchEvent(new Event('blur', {bubbles: true}));
-    await sleep(500);
-    endInput.value = app.power_off;
-    endInput.dispatchEvent(new Event('input', {bubbles: true}));
-    endInput.dispatchEvent(new Event('change', {bubbles: true}));
-    endInput.dispatchEvent(new Event('blur', {bubbles: true}));
-  }
-  
-  await sleep(800);
+  await sleep(500);
   
   // 確認画面へボタンをクリック
-  const confirmBtn = document.querySelector('button[type="submit"], input[type="submit"]');
+  const allBtns = document.querySelectorAll('button');
+  let confirmBtn = null;
+  for (const btn of allBtns) {
+    if (btn.textContent.includes('確認画面')) {
+      confirmBtn = btn;
+      break;
+    }
+  }
+  if (!confirmBtn) {
+    confirmBtn = document.querySelector('button[type="submit"]');
+  }
+  
   if (confirmBtn) {
     sessionStorage.setItem('pint_auto_step', 'confirm');
     confirmBtn.click();
   }
   
   // セッションデータをクリア（確認画面に進んだ後）
+  setTimeout(() => {
+    sessionStorage.removeItem('pint_auto_app');
+    sessionStorage.removeItem('pint_auto_step');
+  }, 2000);
+}
+
+async function fillDatesFallback(app) {
+  // flatpickrが使えない場合の代替処理
+  const startInput = document.getElementById('formtools_vacancy_use_period_start');
+  const endInput = document.getElementById('formtools_vacancy_use_period_end');
+  
+  if (startInput) {
+    // readOnlyを一時的に解除して値を設定
+    startInput.removeAttribute('readonly');
+    startInput.value = app.power_on;
+    startInput.dispatchEvent(new Event('input', {bubbles: true}));
+    startInput.dispatchEvent(new Event('change', {bubbles: true}));
+  }
+  
+  await sleep(300);
+  
+  if (endInput) {
+    endInput.removeAttribute('readonly');
+    endInput.value = app.power_off;
+    endInput.dispatchEvent(new Event('input', {bubbles: true}));
+    endInput.dispatchEvent(new Event('change', {bubbles: true}));
+  }
+  
+  await sleep(500);
+  
+  // 確認画面へボタンをクリック
+  const allBtns = document.querySelectorAll('button');
+  let confirmBtn = null;
+  for (const btn of allBtns) {
+    if (btn.textContent.includes('確認画面')) {
+      confirmBtn = btn;
+      break;
+    }
+  }
+  if (!confirmBtn) {
+    confirmBtn = document.querySelector('button[type="submit"]');
+  }
+  
+  if (confirmBtn) {
+    sessionStorage.setItem('pint_auto_step', 'confirm');
+    confirmBtn.click();
+  }
+  
   setTimeout(() => {
     sessionStorage.removeItem('pint_auto_app');
     sessionStorage.removeItem('pint_auto_step');
