@@ -1,12 +1,14 @@
-// popup.js v15
-// データの受け渡し方法:
-//   popup.js → background.js (saveAppData) → content.js (getAppData)
-//   background.js が Service Worker として常駐し、データを一時保存する。
-//   content.js はページ読み込み後に background.js に問い合わせてデータを取得する。
+// popup.js v18
+// 追加機能:
+//   「✓ 完了」ボタンを追加。
+//   押すと GitHub API で pending_applications.json から該当申請を削除する。
+//   GitHub Personal Access Token は chrome.storage.local に保存する。
 
 const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/mw0basket-droid/auto-electricity-contract/main/pending_applications.json';
+const GITHUB_API_URL = 'https://api.github.com/repos/mw0basket-droid/auto-electricity-contract/contents/pending_applications.json';
 const PINT_SUPPLYPOINT_URL = 'https://kentaku.pint-cloud.com/supplypoint/';
 
+// ===== メッセージ表示 =====
 function showMessage(text, type) {
   const msg = document.getElementById('message');
   msg.textContent = text;
@@ -15,6 +17,43 @@ function showMessage(text, type) {
   setTimeout(() => { msg.style.display = 'none'; }, 8000);
 }
 
+// ===== GitHub Token の保存・読み込み =====
+async function loadToken() {
+  const result = await chrome.storage.local.get('github_token');
+  return result.github_token || '';
+}
+
+async function saveToken(token) {
+  await chrome.storage.local.set({ github_token: token });
+}
+
+// ===== Token 設定 UI の初期化 =====
+async function initTokenSection() {
+  const token = await loadToken();
+  const input = document.getElementById('github-token');
+  const section = document.getElementById('token-section');
+
+  if (token) {
+    // Token が設定済みの場合は入力欄を折りたたむ
+    input.value = token;
+    section.style.display = 'none';
+  }
+
+  document.getElementById('btn-save-token').addEventListener('click', async () => {
+    const val = input.value.trim();
+    if (!val) {
+      showMessage('Tokenを入力してください', 'error');
+      return;
+    }
+    await saveToken(val);
+    document.getElementById('token-saved').style.display = 'block';
+    setTimeout(() => {
+      section.style.display = 'none';
+    }, 1000);
+  });
+}
+
+// ===== 申請リストの表示 =====
 function renderApplications(data) {
   const list = document.getElementById('app-list');
   const dateEl = document.getElementById('target-date');
@@ -22,96 +61,166 @@ function renderApplications(data) {
     dateEl.textContent = '対象日: ' + data.target_date;
   }
   if (!data.applications || data.applications.length === 0) {
-    list.innerHTML = '<div class="empty-state">明日の申請予定はありません</div>';
+    list.innerHTML = '<div class="empty-state">申請予定はありません</div>';
     return;
   }
   list.innerHTML = '';
   data.applications.forEach((app, index) => {
     const item = document.createElement('div');
     item.className = 'application-item';
+    item.dataset.index = index;
     item.innerHTML = `
       <div class="app-title">${app.title}</div>
       <div class="app-detail">地点コード: ${app.chiten_code}</div>
       <div class="app-detail">補足1: ${app.hosoku1}</div>
       <div class="app-detail">通電開始: ${app.power_on}</div>
       <div class="app-detail">通電停止: ${app.power_off}</div>
-      <button class="btn btn-primary" data-index="${index}">PinTで自動入力を開始</button>
+      <button class="btn btn-primary btn-start" data-index="${index}">PinTで自動入力を開始</button>
+      <button class="btn btn-done btn-complete" data-index="${index}">✓ 申請完了（リストから削除）</button>
     `;
     list.appendChild(item);
   });
-  document.querySelectorAll('.btn-primary').forEach(btn => {
+
+  // 自動入力ボタン
+  document.querySelectorAll('.btn-start').forEach(btn => {
     btn.addEventListener('click', (e) => {
       const idx = parseInt(e.target.getAttribute('data-index'));
       startAutoFill(data.applications[idx]);
     });
   });
+
+  // 完了ボタン
+  document.querySelectorAll('.btn-complete').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      const idx = parseInt(e.target.getAttribute('data-index'));
+      await markComplete(data, idx, e.target);
+    });
+  });
 }
 
+// ===== 完了ボタン: GitHub API で申請を削除 =====
+async function markComplete(data, index, btn) {
+  const token = await loadToken();
+  if (!token) {
+    // Token が未設定の場合は設定欄を表示
+    document.getElementById('token-section').style.display = 'block';
+    showMessage('GitHub Tokenを設定してください', 'error');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = '削除中...';
+
+  try {
+    // 現在のファイルの SHA を取得（更新に必要）
+    const shaResp = await fetch(GITHUB_API_URL, {
+      headers: {
+        'Authorization': 'token ' + token,
+        'Accept': 'application/vnd.github.v3+json'
+      }
+    });
+    if (!shaResp.ok) throw new Error('ファイル情報の取得失敗: HTTP ' + shaResp.status);
+    const shaData = await shaResp.json();
+    const sha = shaData.sha;
+
+    // 該当申請を削除した新しいデータを作成
+    const newApplications = data.applications.filter((_, i) => i !== index);
+    const newData = { ...data, applications: newApplications };
+    const newContent = btoa(unescape(encodeURIComponent(JSON.stringify(newData, null, 2) + '\n')));
+
+    // GitHub API でファイルを更新
+    const updateResp = await fetch(GITHUB_API_URL, {
+      method: 'PUT',
+      headers: {
+        'Authorization': 'token ' + token,
+        'Accept': 'application/vnd.github.v3+json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        message: '申請完了: ' + data.applications[index].title,
+        content: newContent,
+        sha: sha
+      })
+    });
+    if (!updateResp.ok) {
+      const errBody = await updateResp.text();
+      throw new Error('ファイル更新失敗: HTTP ' + updateResp.status + ' ' + errBody);
+    }
+
+    // UI を更新（該当アイテムをグレーアウト）
+    const item = document.querySelector(`.application-item[data-index="${index}"]`);
+    if (item) {
+      item.classList.add('done');
+      item.querySelector('.btn-start').style.display = 'none';
+      btn.textContent = '✓ 完了';
+      btn.disabled = true;
+    }
+
+    // data を更新してリストを再描画
+    data.applications = newApplications;
+    showMessage('「' + data.applications[index] ? '' : '申請' + '」をリストから削除しました', 'success');
+    showMessage('リストから削除しました', 'success');
+
+  } catch (e) {
+    console.log('[popup v18] markComplete失敗: ' + e.message);
+    btn.disabled = false;
+    btn.textContent = '✓ 申請完了（リストから削除）';
+    showMessage('削除失敗: ' + e.message, 'error');
+  }
+}
+
+// ===== 自動入力開始 =====
 async function startAutoFill(app) {
   showMessage('処理を開始しています...', 'info');
-  console.log('[popup v15] startAutoFill app=' + JSON.stringify(app));
+  console.log('[popup v18] startAutoFill app=' + JSON.stringify(app));
 
-  // Step1: background.js にデータを保存する
+  // background.js にデータを保存
   try {
     const saveResp = await chrome.runtime.sendMessage({ action: 'saveAppData', data: app });
-    console.log('[popup v15] saveAppData応答: ' + JSON.stringify(saveResp));
+    console.log('[popup v18] saveAppData応答: ' + JSON.stringify(saveResp));
   } catch (e) {
-    console.log('[popup v15] saveAppData失敗: ' + e.message);
     showMessage('エラー: データ保存失敗 (' + e.message + ')', 'error');
     return;
   }
 
-  // Step2: PinT タブを探す or 作成する
+  // PinT タブを探す or 作成する
   const tabs = await chrome.tabs.query({ url: 'https://kentaku.pint-cloud.com/*' });
   let targetTabId;
   let targetTabUrl;
 
   if (tabs.length === 0) {
-    console.log('[popup v15] PinTタブなし → 新規作成');
     showMessage('でんき地点管理ページを開いています...', 'info');
     const newTab = await chrome.tabs.create({ url: PINT_SUPPLYPOINT_URL });
     targetTabId = newTab.id;
     await waitForTabLoad(targetTabId);
     const updatedTab = await chrome.tabs.get(targetTabId);
     targetTabUrl = updatedTab.url || '';
-    console.log('[popup v15] 新規タブURL=' + targetTabUrl);
   } else {
     targetTabId = tabs[0].id;
     targetTabUrl = tabs[0].url || '';
     await chrome.tabs.update(targetTabId, { active: true });
-    console.log('[popup v15] PinTタブ発見 tabId=' + targetTabId + ' url=' + targetTabUrl);
   }
 
-  // Step3: /supplypoint/ 系にいない場合のみ移動する
+  // /supplypoint/ 系にいない場合のみ移動
   const isSupplyPointPage = targetTabUrl.includes('kentaku.pint-cloud.com/supplypoint');
   if (!isSupplyPointPage) {
-    console.log('[popup v15] /supplypoint/ 以外にいるため移動: ' + targetTabUrl);
     showMessage('でんき地点管理ページに移動中...', 'info');
     await chrome.tabs.update(targetTabId, { url: PINT_SUPPLYPOINT_URL });
     await waitForTabLoad(targetTabId);
-    const updatedTab = await chrome.tabs.get(targetTabId);
-    targetTabUrl = updatedTab.url || '';
-    console.log('[popup v15] 移動後URL=' + targetTabUrl);
-  } else {
-    console.log('[popup v15] /supplypoint/ 系にいます: ' + targetTabUrl);
   }
 
-  // Step4: content.js に startFill メッセージを送る
-  // content.js は background.js にデータを問い合わせて処理を開始する
-  console.log('[popup v15] sendMessage送信 tabId=' + targetTabId);
+  // content.js に startFill メッセージを送る
   let messageSent = false;
   try {
     const response = await chrome.tabs.sendMessage(targetTabId, { action: 'startFill' });
-    console.log('[popup v15] sendMessage応答: ' + JSON.stringify(response));
+    console.log('[popup v18] sendMessage応答: ' + JSON.stringify(response));
     messageSent = true;
     showMessage('自動入力を開始しました！', 'success');
   } catch (e) {
-    console.log('[popup v15] sendMessage失敗（content.jsが未ロードの可能性）: ' + e.message);
+    console.log('[popup v18] sendMessage失敗: ' + e.message);
   }
 
-  // sendMessage が失敗した場合はリロードで対応
   if (!messageSent) {
-    console.log('[popup v15] リロードで対応します');
     showMessage('自動入力を開始しました！（ページをリロードします）', 'info');
     await chrome.tabs.reload(targetTabId);
   }
@@ -133,6 +242,7 @@ function waitForTabLoad(tabId) {
   });
 }
 
+// ===== データ読み込み =====
 async function loadData() {
   const list = document.getElementById('app-list');
   list.innerHTML = '<div class="loading">データを読み込み中...</div>';
@@ -146,6 +256,11 @@ async function loadData() {
   }
 }
 
+// ===== 初期化 =====
 document.getElementById('btn-refresh').addEventListener('click', loadData);
-document.addEventListener('DOMContentLoaded', loadData);
+document.addEventListener('DOMContentLoaded', async () => {
+  await initTokenSection();
+  await loadData();
+});
+initTokenSection();
 loadData();

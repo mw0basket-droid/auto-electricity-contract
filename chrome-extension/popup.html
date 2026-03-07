@@ -10,17 +10,27 @@
     .header p { margin: 4px 0 0; font-size: 11px; opacity: 0.9; }
     .content { padding: 12px; }
     .application-item { background: white; border-radius: 8px; padding: 12px; margin-bottom: 8px; border: 1px solid #e0e0e0; border-left: 4px solid #e91e8c; }
+    .application-item.done { opacity: 0.4; border-left-color: #aaa; }
     .app-title { font-size: 13px; font-weight: bold; color: #333; margin-bottom: 6px; }
     .app-detail { font-size: 11px; color: #666; margin: 2px 0; }
     .btn { display: block; width: 100%; padding: 10px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold; margin-top: 8px; box-sizing: border-box; }
     .btn-primary { background: linear-gradient(135deg, #e91e8c, #9c27b0); color: white; }
     .btn-secondary { background: #f0f0f0; color: #333; }
+    .btn-done { background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
+    .btn-done:disabled { opacity: 0.5; cursor: not-allowed; }
     .empty-state { text-align: center; padding: 20px; color: #999; font-size: 12px; }
     .loading { text-align: center; padding: 20px; color: #666; font-size: 12px; }
     #message { font-size: 11px; padding: 8px; border-radius: 4px; margin-top: 8px; display: none; }
     .msg-success { background: #e8f5e9; color: #2e7d32; }
     .msg-error { background: #ffebee; color: #c62828; }
     .msg-info { background: #e3f2fd; color: #1565c0; }
+    /* GitHub Token 設定エリア */
+    .token-section { background: #fff8e1; border: 1px solid #ffe082; border-radius: 6px; padding: 10px; margin-bottom: 10px; font-size: 11px; }
+    .token-section label { display: block; color: #555; margin-bottom: 4px; font-weight: bold; }
+    .token-section input { width: 100%; padding: 5px; border: 1px solid #ccc; border-radius: 4px; font-size: 11px; box-sizing: border-box; }
+    .token-section .token-hint { color: #888; margin-top: 4px; font-size: 10px; }
+    .token-section .btn-save-token { display: inline-block; width: auto; padding: 4px 10px; font-size: 11px; margin-top: 4px; }
+    .token-saved { color: #2e7d32; font-size: 10px; margin-top: 4px; display: none; }
   </style>
 </head>
 <body>
@@ -29,6 +39,15 @@
     <p id="target-date">読み込み中...</p>
   </div>
   <div class="content">
+    <!-- GitHub Token 設定 -->
+    <div class="token-section" id="token-section">
+      <label>GitHub Token（完了ボタン用）</label>
+      <input type="password" id="github-token" placeholder="ghp_xxxxxxxxxxxx">
+      <div class="token-hint">※ 完了ボタンを使うために必要です。一度設定すれば保存されます。</div>
+      <button class="btn btn-secondary btn-save-token" id="btn-save-token">保存</button>
+      <div class="token-saved" id="token-saved">✓ 保存しました</div>
+    </div>
+
     <div id="app-list">
       <div class="loading">申請データを読み込み中...</div>
     </div>
