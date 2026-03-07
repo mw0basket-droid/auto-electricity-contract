@@ -3,7 +3,7 @@ name: GoogleカレンダーからGoogle Sheetsへの同期
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 23 * * *' # 毎日午前8:00 JST (UTC 23:00) に実行
+    - cron: '50 23 * * *' # 毎日午前8:50 JST (UTC 23:50) に実行
 
 permissions:
   contents: write
@@ -61,8 +61,8 @@ jobs:
                       m = re.search(r'地点コード[：:]\s*(\S+)', part)
                       if m:
                           result["地点コード"] = m.group(1)
-                  elif "補足1" in part:
-                      m = re.search(r'補足1[：:]\s*(\S+)', part)
+                  elif "補足1" in part or "補足１" in part:
+                      m = re.search(r'補足[1１][：:]\s*(\S+)', part)
                       if m:
                           result["補足1"] = m.group(1)
                   elif "通電開始" in part:
@@ -89,7 +89,7 @@ jobs:
                   "https://www.googleapis.com/auth/spreadsheets",
                   "https://www.googleapis.com/auth/drive"
               ]
-              creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
+              creds = Credentials.from_service_account_info(creds_dict, scopes=scopes )
               return gspread.authorize(creds)
 
           # --- Google Sheetsに行を追加する関数 ---
