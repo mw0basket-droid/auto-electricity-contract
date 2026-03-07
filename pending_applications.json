@@ -1,30 +1,20 @@
 {
-  "target_date": "2026/03/08",
-  "generated_at": "2026-03-07T01:39:15.895366",
+  "generated_at": "2026-03-07 15:51:55",
+  "target_date": "2026-03-08",
   "applications": [
     {
-      "title": "テスト物件A 101号室 退去立会",
-      "chiten_code": "123456789",
-      "hosoku1": "10101",
-      "power_on": "2026/03/08",
-      "power_off": "2026/04/07",
-      "event_date": "2026/03/08"
+      "title": "TKハウス 103",
+      "power_on": "2026-03-16",
+      "power_off": "2026-04-16",
+      "chiten_code": "025021501",
+      "hosoku1": "01030"
     },
     {
-      "title": "テスト物件B 203号室 退去立会",
-      "chiten_code": "987654321",
-      "hosoku1": "20301",
-      "power_on": "2026/03/08",
-      "power_off": "2026/04/07",
-      "event_date": "2026/03/08"
-    },
-    {
-      "title": "テスト物件C 305号室 退去立会",
-      "chiten_code": "111222333",
-      "hosoku1": "30501",
-      "power_on": "2026/03/08",
-      "power_off": "2026/04/07",
-      "event_date": "2026/03/08"
+      "title": "クレメント余戸B 201",
+      "power_on": "2026-03-13",
+      "power_off": "2026-04-13",
+      "chiten_code": "011569602",
+      "hosoku1": "02010"
     }
   ]
 }
