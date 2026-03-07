@@ -103,6 +103,7 @@ async function markComplete(data, index, btn) {
   // Tokenを取得し、前後の空白・改行を除去
   const rawToken = await loadToken();
   const token = rawToken.replace(/[^\x20-\x7E]/g, '').trim();
+  console.log('[popup] loadToken rawLen=' + rawToken.length + ' cleanLen=' + token.length + ' starts=' + token.substring(0, 6));
   if (!token) {
     document.getElementById('token-section').style.display = 'block';
     showMessage('GitHub Tokenを設定してください', 'error');
@@ -261,9 +262,8 @@ async function loadData() {
 
 // ===== 初期化 =====
 document.getElementById('btn-refresh').addEventListener('click', loadData);
+// DOMContentLoadedのみで初期化（二重呼び出しを防ぐ）
 document.addEventListener('DOMContentLoaded', async () => {
   await initTokenSection();
   await loadData();
 });
-initTokenSection();
-loadData();
