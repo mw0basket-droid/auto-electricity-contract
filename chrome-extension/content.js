@@ -170,10 +170,12 @@ async function waitForDateForm(app) {
   await clearAppData();
 }
 
-// ===== ステップ4: flatpickr カレンダーをクリック操作して日付を入力 =====
+// ===== ステップ4: 日付入力 - background.js 経由で MAIN world に委譲 =====
+// 理由: flatpickr は isolated world のイベントに反応しないため
 async function fillDates(app) {
   console.log('[PinT] 日付入力開始 power_on=' + app.power_on + ' power_off=' + app.power_off);
 
+  // 日付フォームが現れるまで待つ
   let fpInput = null;
   for (let i = 0; i < 30; i++) {
     fpInput = getFormElement('formtools vacancy use period');
@@ -187,92 +189,32 @@ async function fillDates(app) {
     return;
   }
 
-  // カレンダーを開く（複数の方法を試みる）
-  console.log('[PinT] カレンダーを開く（方法1: click）');
-  fpInput.click();
-  await sleep(600);
-
-  let calendarEl = document.querySelector('.flatpickr-calendar.open');
-
-  if (!calendarEl) {
-    console.log('[PinT] click()で開かず → 方法2: _flatpickr.open()');
-    const fp = fpInput._flatpickr;
-    if (fp) {
-      fp.open();
-      await sleep(600);
-      calendarEl = document.querySelector('.flatpickr-calendar.open');
-    }
-  }
-
-  if (!calendarEl) {
-    console.log('[PinT] _flatpickr.open()でも開かず → 方法3: focusイベント');
-    fpInput.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
-    fpInput.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
-    fpInput.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    await sleep(600);
-    calendarEl = document.querySelector('.flatpickr-calendar.open');
-  }
-
-  if (!calendarEl) {
-    console.log('[PinT] 方法3でも開かず → 方法4: .flatpickr-input を直接探してクリック');
-    const allFpInputs = document.querySelectorAll('.flatpickr-input');
-    console.log('[PinT] .flatpickr-input 数: ' + allFpInputs.length);
-    for (const el of allFpInputs) {
-      console.log('[PinT]   id=' + el.id + ' class=' + el.className);
-      el.click();
-      await sleep(400);
-      calendarEl = document.querySelector('.flatpickr-calendar.open');
-      if (calendarEl) break;
-    }
-  }
-
-  if (!calendarEl) {
-    // カレンダーが非表示（display:none）の可能性を確認
-    const allCals = document.querySelectorAll('.flatpickr-calendar');
-    console.log('[PinT] .flatpickr-calendar 数: ' + allCals.length);
-    allCals.forEach((c, i) => {
-      console.log('[PinT]   cal[' + i + '] class=' + c.className + ' display=' + getComputedStyle(c).display);
+  // タブIDを取得して background.js に MAIN world 実行を依頼する
+  console.log('[PinT] background.js 経由で MAIN world に日付入力を委譲');
+  let fillResult = null;
+  try {
+    const tabId = await getCurrentTabId();
+    console.log('[PinT] tabId=' + tabId);
+    fillResult = await chrome.runtime.sendMessage({
+      action: 'fillDatesInMainWorld',
+      tabId: tabId,
+      powerOn: app.power_on,
+      powerOff: app.power_off
     });
-    console.log('[PinT] flatpickrカレンダーが開きませんでした（全方法失敗）');
+    console.log('[PinT] fillDatesInMainWorld応答: ' + JSON.stringify(fillResult));
+  } catch (e) {
+    console.log('[PinT] fillDatesInMainWorld失敗: ' + e.message);
     await clearAppData();
     return;
   }
-  console.log('[PinT] カレンダーが開きました');
 
-  const [sy, sm, sd] = app.power_on.split('-').map(Number);
-  const [ey, em, ed] = app.power_off.split('-').map(Number);
-
-  // 開始日をクリック
-  const clickResult1 = await clickDateInCalendar(calendarEl, sy, sm, sd);
-  if (!clickResult1) {
-    console.log('[PinT] 開始日のクリックに失敗');
+  if (!fillResult || fillResult.status === 'error') {
+    console.log('[PinT] MAIN world実行失敗');
     await clearAppData();
     return;
   }
+
   await sleep(500);
-
-  // 終了日をクリック
-  calendarEl = document.querySelector('.flatpickr-calendar.open');
-  if (!calendarEl) {
-    console.log('[PinT] 開始日クリック後にカレンダーが閉じました（再度開く）');
-    fpInput.click();
-    await sleep(600);
-    calendarEl = document.querySelector('.flatpickr-calendar.open');
-  }
-
-  if (calendarEl) {
-    const clickResult2 = await clickDateInCalendar(calendarEl, ey, em, ed);
-    if (!clickResult2) {
-      console.log('[PinT] 終了日のクリックに失敗');
-    }
-    await sleep(500);
-  } else {
-    console.log('[PinT] 終了日入力用のカレンダーが開けませんでした');
-  }
-
-  // カレンダーを閉じる
-  document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-  await sleep(300);
 
   // 設定後の値を確認
   const startEl = getFormElement('formtools vacancy use period start');
@@ -300,6 +242,15 @@ async function fillDates(app) {
     console.log('[PinT] 確認画面へボタンが見つかりません');
     await clearAppData();
   }
+}
+
+// 現在のタブIDを取得
+async function getCurrentTabId() {
+  return new Promise((resolve) => {
+    chrome.runtime.sendMessage({ action: 'getCurrentTabId' }, (response) => {
+      resolve(response && response.tabId ? response.tabId : null);
+    });
+  });
 }
 
 // ===== flatpickr カレンダーで指定日をクリック（月またぎ対応）=====
