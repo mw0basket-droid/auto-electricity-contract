@@ -1,13 +1,5 @@
 {
   "generated_at": "2026-03-07 22:24:15",
   "target_date": "2026-03-08",
-  "applications": [
-    {
-      "title": "TKハウス 103",
-      "power_on": "2026-03-16",
-      "power_off": "2026-04-15",
-      "chiten_code": "025021501",
-      "hosoku1": "01030"
-    }
-  ]
+  "applications": []
 }
