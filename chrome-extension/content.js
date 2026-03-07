@@ -1,4 +1,4 @@
-// PinT自動入力 content script v11
+// PinT自動入力 content script v12
 // 設計方針:
 //   popup.js が sessionStorage に書き込んで sendMessage を送る
 //   content.js は startFill メッセージを受け取って resumeFromStorage() を実行する
@@ -17,8 +17,12 @@ function sleep(ms) {
 function getState() {
   try {
     const raw = sessionStorage.getItem(STORAGE_KEY);
+    console.log('[PinT] sessionStorage読み取り: ' + (raw ? raw.substring(0, 100) : 'null'));
     return raw ? JSON.parse(raw) : null;
-  } catch (e) { return null; }
+  } catch (e) {
+    console.log('[PinT] sessionStorage読み取り失敗:', e);
+    return null;
+  }
 }
 
 function setState(state) {
@@ -287,14 +291,14 @@ async function resumeFromStorage() {
 
   const state = getState();
   if (!state || !state.app) {
-    console.log('[PinT] 再開する処理なし');
+    console.log('[PinT] 再開する処理なし（sessionStorage=' + sessionStorage.getItem(STORAGE_KEY) + '）');
     return;
   }
 
   _running = true;
   const pageType = getPageType();
   const app = state.app;
-  console.log('[PinT] 処理再開 step=' + state.step + ' pageType=' + pageType);
+  console.log('[PinT] 処理再開 step=' + state.step + ' pageType=' + pageType + ' url=' + location.href);
 
   if (pageType === 'date_form') {
     console.log('[PinT] 日付入力ページ → フォームを待機');
@@ -306,7 +310,7 @@ async function resumeFromStorage() {
     console.log('[PinT] 検索フォームページ → 地点コード入力');
     await fillSupplyPointPage(app);
   } else {
-    console.log('[PinT] ページ種別不明 pageType=' + pageType + ' → stateクリア');
+    console.log('[PinT] ページ種別不明 pageType=' + pageType + ' url=' + location.href + ' → stateクリア');
     clearState();
   }
 }
@@ -315,7 +319,7 @@ async function resumeFromStorage() {
 // popup.js から sendMessage({ action: 'startFill' }) を受け取って処理を開始する
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message && message.action === 'startFill') {
-    console.log('[PinT] startFillメッセージ受信');
+    console.log('[PinT] startFillメッセージ受信 url=' + location.href);
     sendResponse({ status: 'started' });
     // _running フラグをリセットして再実行を許可
     _running = false;
@@ -326,7 +330,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 // ===== 初期化: ページ読み込み後に sessionStorage を確認して処理を再開 =====
-console.log('[PinT] content.js v11 読み込み完了 url=' + location.href);
+console.log('[PinT] content.js v12 読み込み完了 url=' + location.href);
 // document_idle で実行されるため、DOMは既に準備完了している
 // 少し待ってから実行（ページのJSが初期化されるのを待つ）
 setTimeout(resumeFromStorage, 300);
