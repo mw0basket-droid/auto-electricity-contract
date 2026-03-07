@@ -113,12 +113,6 @@ async function markComplete(data, index, btn) {
 
   const app = data.applications[index];
 
-  // row_index がない場合（古いデータ形式）はエラー
-  if (!app.row_index) {
-    showMessage('エラー: row_indexがありません。データを更新してください', 'error');
-    return;
-  }
-
   btn.disabled = true;
   btn.textContent = '処理中...';
 
@@ -135,8 +129,8 @@ async function markComplete(data, index, btn) {
       body: JSON.stringify({
         ref: 'main',
         inputs: {
-          row_index: String(app.row_index),
-          title: app.title || ''
+          title: app.title || '',
+          power_on: app.power_on || ''
         }
       })
     });

@@ -132,7 +132,8 @@ jobs:
                   "未処理",
                   now_jst
               ]
-              sheet.append_row(new_row)
+              # 新しい行をヘッダーの直下（2行目）に挿入（新しいものを上に表示）
+              sheet.insert_row(new_row, 2)
               print(f"✅ Sheets追加成功: {title} (通電開始: {power_on_str})")
               return {
                   "title": title,
@@ -193,8 +194,8 @@ jobs:
                           "power_on": row[1],
                           "power_off": row[2],
                           "chiten_code": row[3],
-                          "hosoku1": row[4],
-                          "row_index": all_rows.index(row) + 1  # 1-indexed
+                          "hosoku1": row[4]
+                          # row_indexは行挿入でずれるため使わず、title+power_onで特定する
                       })
               return pending
 
