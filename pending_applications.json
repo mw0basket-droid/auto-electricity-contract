@@ -1,14 +1,7 @@
 {
-  "generated_at": "2026-03-07 23:49:19",
+  "generated_at": "2026-03-07 23:50:44",
   "target_date": "2026-03-08",
   "applications": [
-    {
-      "title": "クレメント余戸B 201",
-      "power_on": "2026-03-13",
-      "power_off": "2026-04-12",
-      "chiten_code": "011569602",
-      "hosoku1": "02010"
-    },
     {
       "title": "TKハウス 103",
       "power_on": "2026-03-16",
