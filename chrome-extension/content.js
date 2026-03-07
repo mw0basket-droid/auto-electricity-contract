@@ -1,5 +1,5 @@
-// PinT自動入力 content script v5
-// sessionStorageを使ってページ再読み込み後も処理を継続する
+// PinT自動入力 content script v6
+// フォームIDのスペース問題を修正 + sessionStorage引き継ぎ改善
 const STORAGE_KEY = 'pint_auto_fill';
 
 function sleep(ms) {
@@ -18,11 +18,33 @@ function getState() {
 function setState(state) {
   try {
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  } catch(e) {}
+    console.log('[PinT] sessionStorage保存: step=' + state.step);
+  } catch(e) {
+    console.log('[PinT] sessionStorage保存失敗:', e);
+  }
 }
 
 function clearState() {
   sessionStorage.removeItem(STORAGE_KEY);
+  console.log('[PinT] sessionStorageクリア');
+}
+
+// フォーム要素を取得（IDにスペースが含まれる場合も対応）
+function getFormElement(idWithSpaces) {
+  // スペースをアンダースコアに変換して試す
+  const idUnderscore = idWithSpaces.replace(/ /g, '_');
+  let el = document.getElementById(idUnderscore);
+  if (el) return el;
+  // スペースのままで試す（属性セレクタを使用）
+  el = document.querySelector('[id="' + idWithSpaces + '"]');
+  if (el) return el;
+  // 部分一致で試す
+  for (const candidate of document.querySelectorAll('input, select, textarea')) {
+    if (candidate.id && candidate.id.replace(/_/g, ' ') === idWithSpaces) {
+      return candidate;
+    }
+  }
+  return null;
 }
 
 // ===== ステップ1: 地点コード・補足1を入力して絞込 =====
@@ -73,11 +95,11 @@ async function fillSupplyPointPage(app) {
   }
 
   if (filterBtn) {
-    // ページ遷移する可能性があるのでstepを更新してからクリック
+    // ページ遷移する前にstepを更新
     setState({ step: 'click_vacancy', app: app });
-    console.log('[PinT] 絞込ボタンをクリック → step=click_vacancy (sessionStorage保存済み)');
+    console.log('[PinT] 絞込ボタンをクリック → step=click_vacancy');
     filterBtn.click();
-    // SPAの場合はページ遷移しないのでポーリングも続ける
+    // SPAの場合はポーリングも続ける
     waitForVacancyButton(app);
   } else {
     console.log('[PinT] 絞込ボタンが見つかりません');
@@ -116,16 +138,21 @@ function findVacancyButton() {
 // ===== 日付入力フォームが現れるのを待つ =====
 async function waitForDateForm(app) {
   console.log('[PinT] 日付入力フォームを待機中...');
-  for (let i = 0; i < 40; i++) {
+  for (let i = 0; i < 60; i++) {
     await sleep(250);
-    const fpInput = document.getElementById('formtools_vacancy_use_period');
+    // スペースIDとアンダースコアIDの両方を試す
+    const fpInput = getFormElement('formtools vacancy use period');
     if (fpInput) {
-      console.log('[PinT] 日付フォーム発見、fillDates実行');
+      console.log('[PinT] 日付フォーム発見 id=' + fpInput.id + '、fillDates実行');
       fillDates(app);
       return;
     }
   }
   console.log('[PinT] 日付フォームが見つかりませんでした（タイムアウト）');
+  // デバッグ情報を出力
+  const allInputs = document.querySelectorAll('input');
+  console.log('[PinT] ページ上のinput要素:');
+  allInputs.forEach(el => console.log('  id=' + el.id + ' type=' + el.type + ' value=' + el.value));
   clearState();
 }
 
@@ -137,7 +164,7 @@ async function fillDates(app) {
   let fpInput = null;
   let fp = null;
   for (let i = 0; i < 25; i++) {
-    fpInput = document.getElementById('formtools_vacancy_use_period');
+    fpInput = getFormElement('formtools vacancy use period');
     if (fpInput && fpInput._flatpickr) {
       fp = fpInput._flatpickr;
       break;
@@ -152,7 +179,7 @@ async function fillDates(app) {
   }
 
   if (fp) {
-    console.log('[PinT] flatpickr発見、日付を設定します');
+    console.log('[PinT] flatpickr発見 id=' + fpInput.id + '、日付を設定します');
     fp.clear();
     await sleep(300);
 
@@ -174,13 +201,15 @@ async function fillDates(app) {
     }
 
     await sleep(500);
-    const startVal = document.getElementById('formtools_vacancy_use_period_start')?.value;
-    const endVal = document.getElementById('formtools_vacancy_use_period_end')?.value;
+    const startEl = getFormElement('formtools vacancy use period start');
+    const endEl = getFormElement('formtools vacancy use period end');
+    const startVal = startEl?.value;
+    const endVal = endEl?.value;
     console.log('[PinT] 設定後 start=' + startVal + ' end=' + endVal + ' input=' + fpInput.value);
   } else {
     console.log('[PinT] flatpickrが見つかりません、フォールバック処理');
-    const startInput = document.getElementById('formtools_vacancy_use_period_start');
-    const endInput = document.getElementById('formtools_vacancy_use_period_end');
+    const startInput = getFormElement('formtools vacancy use period start');
+    const endInput = getFormElement('formtools vacancy use period end');
     if (startInput) {
       startInput.removeAttribute('readonly');
       startInput.value = app.power_on;
@@ -225,20 +254,31 @@ async function resumeFromStorage() {
     return;
   }
 
-  console.log('[PinT] sessionStorageから処理を再開 step=' + state.step);
+  console.log('[PinT] sessionStorageから処理を再開 step=' + state.step + ' url=' + location.href);
   const app = state.app;
+  const url = location.href;
 
-  if (state.step === 'search') {
-    // 検索ページに戻ってきた場合は再入力
-    await fillSupplyPointPage(app);
-  } else if (state.step === 'click_vacancy') {
-    // 絞込後のページ: 空室プランボタンを待つ
+  // URLからステップを判定（sessionStorageのstepより優先）
+  if (url.includes('/turn_and_termination_vacancy')) {
+    // 日付入力ページ
+    console.log('[PinT] 日付入力ページ検出 → フォームを待機');
+    setState({ step: 'fill_dates', app: app });
+    await waitForDateForm(app);
+  } else if (url.includes('/supplypoint/') && !url.includes('?')) {
+    // 絞込後の一覧ページ（URLパラメータなし）
     console.log('[PinT] 絞込後ページ検出 → 空室プランボタンを待機');
     await waitForVacancyButton(app);
+  } else if (state.step === 'click_vacancy') {
+    // 絞込後のページ（URLパラメータあり）
+    console.log('[PinT] 絞込後ページ検出(params) → 空室プランボタンを待機');
+    await waitForVacancyButton(app);
   } else if (state.step === 'fill_dates') {
-    // 日付入力ページ: フォームを待って入力
+    // 日付入力ページ
     console.log('[PinT] 日付入力ページ検出 → フォームを待機');
     await waitForDateForm(app);
+  } else if (state.step === 'search') {
+    // 検索ページに戻ってきた場合は再入力
+    await fillSupplyPointPage(app);
   }
 }
 
@@ -254,6 +294,5 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 // ===== 初期化: ページ読み込み時に自動再開を試みる =====
-console.log('[PinT] content.js v5 読み込み完了 url=' + location.href);
-// 少し待ってからsessionStorageを確認（ページが安定してから）
+console.log('[PinT] content.js v6 読み込み完了 url=' + location.href);
 setTimeout(resumeFromStorage, 1000);
