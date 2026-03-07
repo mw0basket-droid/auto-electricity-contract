@@ -1,16 +1,19 @@
-// popup.js v9
+// popup.js v10
 // 設計方針（シンプル・確実・安全）:
-//   現在どのページにいても、必ず /supplypoint/ に移動してから処理を開始する。
-//   これにより「絞込後ページでリロード → sessionStorageが消える」問題を完全に回避する。
 //
-// 処理フロー:
-//   1. PinTタブを /supplypoint/ に移動（現在のURLに関わらず常に移動）
-//   2. ページ読み込み完了を待つ（800ms余裕を持つ）
-//   3. executeScript (world: MAIN) で sessionStorage に書き込む
-//   4. chrome.tabs.reload() でリロードする
-//   → content.js がリロード後に sessionStorage を読んで処理を開始する
+// 問題: chrome.tabs.reload() は「現在のタブのURL」をリロードする。
+//       tabs.update(url) で /supplypoint/ に移動した後、waitForTabLoad が
+//       完了する前に reload() が呼ばれると、古いURL（/turn_and_termination_vacancy）が
+//       リロードされてしまう。
 //
-// sendMessage は使わない（タイミング問題が発生するため廃止）
+// 解決: reload() を廃止する。代わりに以下の2段階ナビゲーションを使う:
+//   1. tabs.update(url: /supplypoint/) → waitForTabLoad → executeScript(sessionStorage書き込み)
+//   2. tabs.update(url: /supplypoint/) → waitForTabLoad → content.js が sessionStorage を読む
+//
+// つまり /supplypoint/ に2回ナビゲートする。
+// 1回目: ページを確実に /supplypoint/ にする
+// 2回目: sessionStorage書き込み済みの状態で /supplypoint/ を再度読み込む
+//        → content.js が起動して sessionStorage を確認 → 処理開始
 
 const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/mw0basket-droid/auto-electricity-contract/main/pending_applications.json';
 const STORAGE_KEY = 'pint_auto_fill';
@@ -66,24 +69,20 @@ async function startAutoFill(app) {
   if (tabs.length === 0) {
     const newTab = await chrome.tabs.create({ url: PINT_SUPPLYPOINT_URL });
     targetTabId = newTab.id;
-    showMessage('PinTを開いています...', 'info');
-    await waitForTabLoad(targetTabId);
   } else {
     targetTabId = tabs[0].id;
     await chrome.tabs.update(targetTabId, { active: true });
-
-    // 現在のURLに関わらず、必ず /supplypoint/ に移動する
-    // これにより「絞込後ページでリロード → sessionStorageが消える」問題を回避
-    const currentUrl = tabs[0].url || '';
-    console.log('[popup v9] 現在のURL: ' + currentUrl + ' → /supplypoint/ に移動します');
-    await chrome.tabs.update(targetTabId, { url: PINT_SUPPLYPOINT_URL });
-    showMessage('でんき地点管理ページに移動中...', 'info');
-    await waitForTabLoad(targetTabId);
   }
 
-  // Step2: MAIN world で sessionStorage に書き込む
-  // world: 'MAIN' を指定することで、content script (ISOLATED world) からも
-  // 同じ window.sessionStorage を参照できる
+  // Step2: 1回目のナビゲーション → /supplypoint/ に確実に移動する
+  console.log('[popup v10] 1回目: /supplypoint/ に移動します');
+  showMessage('でんき地点管理ページに移動中...', 'info');
+  await chrome.tabs.update(targetTabId, { url: PINT_SUPPLYPOINT_URL });
+  await waitForTabLoad(targetTabId);
+  console.log('[popup v10] 1回目のナビゲーション完了');
+
+  // Step3: MAIN world で sessionStorage に書き込む
+  // /supplypoint/ に確実にいる状態で書き込む
   const stateData = JSON.stringify({ step: 'search', app: app });
   try {
     const results = await chrome.scripting.executeScript({
@@ -101,7 +100,7 @@ async function startAutoFill(app) {
       args: [STORAGE_KEY, stateData]
     });
     const result = results && results[0] && results[0].result;
-    console.log('[popup v9] sessionStorage書き込み結果: ' + result);
+    console.log('[popup v10] sessionStorage書き込み結果: ' + result);
     if (result !== 'ok') {
       showMessage('エラー: sessionStorage書き込み失敗 (' + result + ')', 'error');
       return;
@@ -111,11 +110,13 @@ async function startAutoFill(app) {
     return;
   }
 
-  // Step3: リロードする
-  // /supplypoint/ にいる状態でリロードするため、sessionStorage は確実に保持される
-  console.log('[popup v9] リロードします → content.js が sessionStorage を読んで処理開始');
+  // Step4: 2回目のナビゲーション → sessionStorage書き込み済みの状態で /supplypoint/ を再度読み込む
+  // reload() ではなく tabs.update(url) を使うことで、確実に /supplypoint/ が読み込まれる
+  console.log('[popup v10] 2回目: sessionStorage書き込み済みで /supplypoint/ に再ナビゲート');
   showMessage('自動入力を開始しました！', 'success');
-  await chrome.tabs.reload(targetTabId);
+  await chrome.tabs.update(targetTabId, { url: PINT_SUPPLYPOINT_URL });
+  // content.js が起動して sessionStorage を読んで処理を開始する
+  // （popup.js はここで待機不要）
 }
 
 function waitForTabLoad(tabId) {
