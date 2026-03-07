@@ -1,14 +1,13 @@
-// PinT自動入力 content script v13
-// 根本原因修正:
-//   sessionStorage は popup.js の executeScript(MAIN world) から書き込んでも
-//   content.js(isolated world) からは見えないことが判明。
-//
-//   解決策: chrome.storage.session を使う。
-//   chrome.storage.session はページ遷移をまたいで保持され、
-//   content.js から chrome.storage.session.get() で読み取れる。
+// PinT自動入力 content script v14
+// 変更点:
+//   flatpickr の日付入力を「実際のクリック操作」で再現するように変更。
+//   - 入力フィールドをクリックしてカレンダーを開く
+//   - 月またぎの場合は「>」ボタンをクリックして次月に移動
+//   - 対象の日付セルをクリック（無効セルは除外）
+//   - 開始日クリック後、終了日をクリック
 
 const STORAGE_KEY = 'pint_auto_fill';
-let _running = false;  // 二重実行防止フラグ
+let _running = false;
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -185,18 +184,15 @@ async function waitForDateForm(app) {
   await clearState();
 }
 
-// ===== ステップ4: 日付を設定して確認画面へ =====
+// ===== ステップ4: flatpickr カレンダーをクリック操作して日付を入力 =====
 async function fillDates(app) {
   console.log('[PinT] 日付入力開始 power_on=' + app.power_on + ' power_off=' + app.power_off);
 
+  // 入力フィールドが現れるまで待つ
   let fpInput = null;
-  let fp = null;
   for (let i = 0; i < 30; i++) {
     fpInput = getFormElement('formtools vacancy use period');
-    if (fpInput && fpInput._flatpickr) {
-      fp = fpInput._flatpickr;
-      break;
-    }
+    if (fpInput) break;
     await sleep(200);
   }
 
@@ -206,51 +202,75 @@ async function fillDates(app) {
     return;
   }
 
-  if (fp) {
-    console.log('[PinT] flatpickr発見、日付を設定します');
-    fp.clear();
-    await sleep(300);
+  // カレンダーを開く（入力フィールドをクリック）
+  console.log('[PinT] カレンダーを開く');
+  fpInput.click();
+  await sleep(600);
 
-    const [sy, sm, sd] = app.power_on.split('-').map(Number);
-    const [ey, em, ed] = app.power_off.split('-').map(Number);
-    const startDate = new Date(sy, sm - 1, sd);
-    const endDate = new Date(ey, em - 1, ed);
-
-    fp.selectedDates = [startDate, endDate];
-    fp.updateValue(true);
-
-    if (fp.config && fp.config.onChange) {
-      const cbs = Array.isArray(fp.config.onChange) ? fp.config.onChange : [fp.config.onChange];
-      cbs.forEach(fn => {
-        try { fn(fp.selectedDates, fp.input.value, fp); } catch (e) {}
-      });
+  // カレンダーが開いたか確認
+  let calendarEl = document.querySelector('.flatpickr-calendar.open');
+  if (!calendarEl) {
+    // _flatpickr API で強制的に開く
+    const fp = fpInput._flatpickr;
+    if (fp) {
+      fp.open();
+      await sleep(600);
+      calendarEl = document.querySelector('.flatpickr-calendar.open');
     }
-    await sleep(500);
-
-    const startEl = getFormElement('formtools vacancy use period start');
-    const endEl = getFormElement('formtools vacancy use period end');
-    console.log('[PinT] 設定後 start=' + (startEl ? startEl.value : 'N/A') + ' end=' + (endEl ? endEl.value : 'N/A'));
-  } else {
-    console.log('[PinT] flatpickrなし、直接入力します');
-    const startInput = getFormElement('formtools vacancy use period start');
-    const endInput = getFormElement('formtools vacancy use period end');
-
-    if (startInput) {
-      startInput.removeAttribute('readonly');
-      startInput.value = app.power_on;
-      startInput.dispatchEvent(new Event('input', { bubbles: true }));
-      startInput.dispatchEvent(new Event('change', { bubbles: true }));
-    }
-    await sleep(200);
-    if (endInput) {
-      endInput.removeAttribute('readonly');
-      endInput.value = app.power_off;
-      endInput.dispatchEvent(new Event('input', { bubbles: true }));
-      endInput.dispatchEvent(new Event('change', { bubbles: true }));
-    }
-    await sleep(500);
   }
 
+  if (!calendarEl) {
+    console.log('[PinT] flatpickrカレンダーが開きませんでした');
+    await clearState();
+    return;
+  }
+  console.log('[PinT] カレンダーが開きました');
+
+  // 開始日をクリック
+  const [sy, sm, sd] = app.power_on.split('-').map(Number);
+  const [ey, em, ed] = app.power_off.split('-').map(Number);
+
+  const clickResult1 = await clickDateInCalendar(calendarEl, sy, sm, sd);
+  if (!clickResult1) {
+    console.log('[PinT] 開始日のクリックに失敗');
+    await clearState();
+    return;
+  }
+  await sleep(500);
+
+  // 終了日をクリック（カレンダーはまだ開いているはず）
+  calendarEl = document.querySelector('.flatpickr-calendar.open');
+  if (!calendarEl) {
+    // 閉じてしまった場合は再度開く
+    console.log('[PinT] 開始日クリック後にカレンダーが閉じました（再度開く）');
+    fpInput.click();
+    await sleep(600);
+    calendarEl = document.querySelector('.flatpickr-calendar.open');
+  }
+
+  if (calendarEl) {
+    const clickResult2 = await clickDateInCalendar(calendarEl, ey, em, ed);
+    if (!clickResult2) {
+      console.log('[PinT] 終了日のクリックに失敗');
+    }
+    await sleep(500);
+  } else {
+    console.log('[PinT] 終了日入力用のカレンダーが開けませんでした');
+  }
+
+  // カレンダーを閉じる（Escape キー）
+  document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  await sleep(300);
+
+  // 設定後の値を確認
+  const startEl = getFormElement('formtools vacancy use period start');
+  const endEl = getFormElement('formtools vacancy use period end');
+  const mainInput = getFormElement('formtools vacancy use period');
+  console.log('[PinT] 設定後 start=' + (startEl ? startEl.value : 'N/A') +
+              ' end=' + (endEl ? endEl.value : 'N/A') +
+              ' main=' + (mainInput ? mainInput.value : 'N/A'));
+
+  // 確認画面へボタンをクリック
   let confirmBtn = null;
   for (const btn of document.querySelectorAll('button')) {
     if (btn.textContent.includes('確認画面')) {
@@ -268,6 +288,71 @@ async function fillDates(app) {
     console.log('[PinT] 確認画面へボタンが見つかりません');
     await clearState();
   }
+}
+
+// ===== flatpickr カレンダーで指定日をクリック（月またぎ対応）=====
+async function clickDateInCalendar(calendarEl, year, month, day) {
+  console.log('[PinT] 日付クリック開始: ' + year + '-' + month + '-' + day);
+
+  // 最大 6 ヶ月分ナビゲートして対象月を表示する
+  for (let attempt = 0; attempt < 6; attempt++) {
+    // 現在表示中の年月を取得
+    const monthSelect = calendarEl.querySelector('.flatpickr-monthDropdown-months');
+    const yearInput = calendarEl.querySelector('.numInputWrapper input.cur-year');
+    let currentMonth = -1;
+    let currentYear = -1;
+    if (monthSelect) currentMonth = parseInt(monthSelect.value) + 1; // 0-indexed → 1-indexed
+    if (yearInput) currentYear = parseInt(yearInput.value);
+
+    console.log('[PinT] 現在: ' + currentYear + '年' + currentMonth + '月 → 目標: ' + year + '年' + month + '月');
+
+    if (currentYear === year && currentMonth === month) {
+      // 対象月を表示中 → 日付セルをクリック
+      const dayCell = findDayCell(calendarEl, day);
+      if (dayCell) {
+        console.log('[PinT] 日付セルクリック: ' + day + '日');
+        dayCell.click();
+        return true;
+      } else {
+        console.log('[PinT] 日付セルが見つかりません（無効な日付の可能性）: ' + day + '日');
+        // 無効セルも含めて探す（デバッグ用）
+        const allCells = calendarEl.querySelectorAll('.flatpickr-day');
+        allCells.forEach(c => {
+          if (parseInt(c.textContent.trim()) === day) {
+            console.log('[PinT] 無効セル発見: class=' + c.className);
+          }
+        });
+        return false;
+      }
+    } else {
+      // 次の月へ移動（「>」ボタンをクリック）
+      const nextBtn = calendarEl.querySelector('.flatpickr-next-month');
+      if (nextBtn) {
+        console.log('[PinT] 次の月へ移動');
+        nextBtn.click();
+        await sleep(400);
+      } else {
+        console.log('[PinT] 次月ボタンが見つかりません');
+        return false;
+      }
+    }
+  }
+  console.log('[PinT] 対象月に到達できませんでした（6ヶ月分ナビゲート失敗）');
+  return false;
+}
+
+// カレンダー内の日付セルを探す（無効セルは除外）
+function findDayCell(calendarEl, day) {
+  // 有効なセルのみ（flatpickr-disabled, prevMonthDay, nextMonthDay を除外）
+  const cells = calendarEl.querySelectorAll(
+    '.flatpickr-day:not(.flatpickr-disabled):not(.prevMonthDay):not(.nextMonthDay)'
+  );
+  for (const cell of cells) {
+    if (parseInt(cell.textContent.trim()) === day) {
+      return cell;
+    }
+  }
+  return null;
 }
 
 // ===== メイン処理: chrome.storage.session を確認して処理を振り分ける =====
@@ -315,5 +400,5 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 // ===== 初期化 =====
-console.log('[PinT] content.js v13 読み込み完了 url=' + location.href);
+console.log('[PinT] content.js v14 読み込み完了 url=' + location.href);
 setTimeout(resumeFromStorage, 300);
