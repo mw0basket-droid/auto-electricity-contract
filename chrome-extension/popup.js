@@ -1,19 +1,14 @@
-// popup.js v10
-// 設計方針（シンプル・確実・安全）:
+// popup.js v11
+// 設計方針:
+//   ページ移動を極力しない。
+//   PinT タブが /supplypoint/ 系にいる場合はそのまま sessionStorage を書き込んで sendMessage。
+//   /supplypoint/ 系にいない場合のみ /supplypoint/ に移動する。
+//   sendMessage が失敗した場合はリロードで対応。
 //
-// 問題: chrome.tabs.reload() は「現在のタブのURL」をリロードする。
-//       tabs.update(url) で /supplypoint/ に移動した後、waitForTabLoad が
-//       完了する前に reload() が呼ばれると、古いURL（/turn_and_termination_vacancy）が
-//       リロードされてしまう。
-//
-// 解決: reload() を廃止する。代わりに以下の2段階ナビゲーションを使う:
-//   1. tabs.update(url: /supplypoint/) → waitForTabLoad → executeScript(sessionStorage書き込み)
-//   2. tabs.update(url: /supplypoint/) → waitForTabLoad → content.js が sessionStorage を読む
-//
-// つまり /supplypoint/ に2回ナビゲートする。
-// 1回目: ページを確実に /supplypoint/ にする
-// 2回目: sessionStorage書き込み済みの状態で /supplypoint/ を再度読み込む
-//        → content.js が起動して sessionStorage を確認 → 処理開始
+//   content.js は現在のページ種別に応じて処理を開始する:
+//     search_form  → 地点コード入力 → 絞込
+//     search_result → 空室プランボタン待機 → クリック
+//     date_form    → 日付フォーム入力
 
 const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/mw0basket-droid/auto-electricity-contract/main/pending_applications.json';
 const STORAGE_KEY = 'pint_auto_fill';
@@ -62,28 +57,45 @@ function renderApplications(data) {
 async function startAutoFill(app) {
   showMessage('処理を開始しています...', 'info');
 
-  // Step1: PinTタブを探す or 作成する
+  // Step1: PinT タブを探す or 作成する
   const tabs = await chrome.tabs.query({ url: 'https://kentaku.pint-cloud.com/*' });
   let targetTabId;
+  let targetTabUrl;
 
   if (tabs.length === 0) {
+    // PinT タブがない → 新規作成して /supplypoint/ に移動
+    console.log('[popup v11] PinTタブなし → 新規作成');
+    showMessage('でんき地点管理ページを開いています...', 'info');
     const newTab = await chrome.tabs.create({ url: PINT_SUPPLYPOINT_URL });
     targetTabId = newTab.id;
+    await waitForTabLoad(targetTabId);
+    const updatedTab = await chrome.tabs.get(targetTabId);
+    targetTabUrl = updatedTab.url || '';
   } else {
     targetTabId = tabs[0].id;
+    targetTabUrl = tabs[0].url || '';
     await chrome.tabs.update(targetTabId, { active: true });
+    console.log('[popup v11] PinTタブ発見 url=' + targetTabUrl);
   }
 
-  // Step2: 1回目のナビゲーション → /supplypoint/ に確実に移動する
-  console.log('[popup v10] 1回目: /supplypoint/ に移動します');
-  showMessage('でんき地点管理ページに移動中...', 'info');
-  await chrome.tabs.update(targetTabId, { url: PINT_SUPPLYPOINT_URL });
-  await waitForTabLoad(targetTabId);
-  console.log('[popup v10] 1回目のナビゲーション完了');
+  // Step2: /supplypoint/ 系にいない場合のみ移動する
+  const isSupplyPointPage = targetTabUrl.includes('kentaku.pint-cloud.com/supplypoint');
+  if (!isSupplyPointPage) {
+    console.log('[popup v11] /supplypoint/ 以外にいるため移動: ' + targetTabUrl);
+    showMessage('でんき地点管理ページに移動中...', 'info');
+    await chrome.tabs.update(targetTabId, { url: PINT_SUPPLYPOINT_URL });
+    await waitForTabLoad(targetTabId);
+    const updatedTab = await chrome.tabs.get(targetTabId);
+    targetTabUrl = updatedTab.url || '';
+    console.log('[popup v11] 移動後URL=' + targetTabUrl);
+  } else {
+    console.log('[popup v11] /supplypoint/ 系にいます: ' + targetTabUrl);
+  }
 
-  // Step3: MAIN world で sessionStorage に書き込む
-  // /supplypoint/ に確実にいる状態で書き込む
-  const stateData = JSON.stringify({ step: 'search', app: app });
+  // Step3: sessionStorage に申請データを書き込む（MAIN world）
+  // step: 'auto' → content.js が現在のページ種別を判定して適切な処理を開始する
+  const stateData = JSON.stringify({ step: 'auto', app: app });
+  let writeResult = null;
   try {
     const results = await chrome.scripting.executeScript({
       target: { tabId: targetTabId },
@@ -99,24 +111,37 @@ async function startAutoFill(app) {
       },
       args: [STORAGE_KEY, stateData]
     });
-    const result = results && results[0] && results[0].result;
-    console.log('[popup v10] sessionStorage書き込み結果: ' + result);
-    if (result !== 'ok') {
-      showMessage('エラー: sessionStorage書き込み失敗 (' + result + ')', 'error');
-      return;
-    }
+    writeResult = results && results[0] && results[0].result;
+    console.log('[popup v11] sessionStorage書き込み結果: ' + writeResult);
   } catch (e) {
-    showMessage('エラー: ' + e.message, 'error');
+    console.log('[popup v11] executeScript失敗: ' + e.message);
+    writeResult = 'error:' + e.message;
+  }
+
+  if (writeResult !== 'ok') {
+    showMessage('エラー: sessionStorage書き込み失敗 (' + writeResult + ')', 'error');
     return;
   }
 
-  // Step4: 2回目のナビゲーション → sessionStorage書き込み済みの状態で /supplypoint/ を再度読み込む
-  // reload() ではなく tabs.update(url) を使うことで、確実に /supplypoint/ が読み込まれる
-  console.log('[popup v10] 2回目: sessionStorage書き込み済みで /supplypoint/ に再ナビゲート');
-  showMessage('自動入力を開始しました！', 'success');
-  await chrome.tabs.update(targetTabId, { url: PINT_SUPPLYPOINT_URL });
-  // content.js が起動して sessionStorage を読んで処理を開始する
-  // （popup.js はここで待機不要）
+  // Step4: sendMessage で content.js に処理開始を通知する
+  // content.js は sessionStorage を読んで現在のページ種別に応じた処理を開始する
+  let messageSent = false;
+  try {
+    const response = await chrome.tabs.sendMessage(targetTabId, { action: 'startFill' });
+    console.log('[popup v11] sendMessage応答: ' + JSON.stringify(response));
+    messageSent = true;
+    showMessage('自動入力を開始しました！', 'success');
+  } catch (e) {
+    console.log('[popup v11] sendMessage失敗: ' + e.message);
+  }
+
+  // sendMessage が失敗した場合はリロードで対応
+  // （sessionStorage は書き込み済みなので、リロード後に content.js が自動的に処理を開始する）
+  if (!messageSent) {
+    console.log('[popup v11] リロードで対応します');
+    showMessage('自動入力を開始しました！（ページをリロードします）', 'info');
+    await chrome.tabs.reload(targetTabId);
+  }
 }
 
 function waitForTabLoad(tabId) {
@@ -124,12 +149,10 @@ function waitForTabLoad(tabId) {
     const listener = (id, changeInfo) => {
       if (id === tabId && changeInfo.status === 'complete') {
         chrome.tabs.onUpdated.removeListener(listener);
-        // ページのJSが初期化されるまで少し待つ
         setTimeout(resolve, 800);
       }
     };
     chrome.tabs.onUpdated.addListener(listener);
-    // タイムアウト: 15秒
     setTimeout(() => {
       chrome.tabs.onUpdated.removeListener(listener);
       resolve();

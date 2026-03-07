@@ -1,8 +1,9 @@
-// PinT自動入力 content script v10
+// PinT自動入力 content script v11
 // 設計方針:
-//   popup.js が sessionStorage に書き込んでからリロードする
+//   popup.js が sessionStorage に書き込んで sendMessage を送る
+//   content.js は startFill メッセージを受け取って resumeFromStorage() を実行する
+//   sendMessage が失敗した場合は popup.js がリロードし、
 //   content.js はページ読み込み後に sessionStorage を確認して処理を開始する
-//   sendMessage は使わない（タイミング問題が発生するため廃止）
 //   実行中フラグ (_running) で二重実行を防止する
 
 const STORAGE_KEY = 'pint_auto_fill';
@@ -310,8 +311,22 @@ async function resumeFromStorage() {
   }
 }
 
+// ===== startFill メッセージリスナー =====
+// popup.js から sendMessage({ action: 'startFill' }) を受け取って処理を開始する
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message && message.action === 'startFill') {
+    console.log('[PinT] startFillメッセージ受信');
+    sendResponse({ status: 'started' });
+    // _running フラグをリセットして再実行を許可
+    _running = false;
+    // 非同期で実行（sendResponse の後に処理を開始）
+    setTimeout(() => resumeFromStorage(), 0);
+    return true;
+  }
+});
+
 // ===== 初期化: ページ読み込み後に sessionStorage を確認して処理を再開 =====
-console.log('[PinT] content.js v10 読み込み完了 url=' + location.href);
+console.log('[PinT] content.js v11 読み込み完了 url=' + location.href);
 // document_idle で実行されるため、DOMは既に準備完了している
 // 少し待ってから実行（ページのJSが初期化されるのを待つ）
 setTimeout(resumeFromStorage, 300);
