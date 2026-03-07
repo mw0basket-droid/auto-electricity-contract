@@ -1,10 +1,16 @@
 // PinT自動入力 content script
+// ステップ管理はsessionStorageではなくメモリ内変数で行う
+// ページ遷移（SPA含む）はMutationObserverで検知
+
+let autoFillApp = null;   // 現在処理中の申請データ
+let autoFillStep = null;  // 'search' | 'click_vacancy' | 'fill_dates' | null
+let fillDatesExecuted = false;
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// ===== ステップ1: でんき地点管理ページで地点コード・補足1を入力して絞込 =====
+// ===== ステップ1: 地点コード・補足1を入力して絞込 =====
 async function fillSupplyPointPage(app) {
   await sleep(800);
 
@@ -44,16 +50,17 @@ async function fillSupplyPointPage(app) {
   }
 
   if (filterBtn) {
-    sessionStorage.setItem('pint_auto_app', JSON.stringify(app));
-    sessionStorage.setItem('pint_auto_step', 'find_vacancy_btn');
-    console.log('[PinT] 絞込ボタンをクリック');
+    autoFillStep = 'click_vacancy';
+    console.log('[PinT] 絞込ボタンをクリック → step=click_vacancy');
     filterBtn.click();
   } else {
     console.log('[PinT] 絞込ボタンが見つかりません');
+    autoFillApp = null;
+    autoFillStep = null;
   }
 }
 
-// ===== ステップ2: 検索結果から「空室プランの開始/停止」をクリック =====
+// ===== ステップ2: 「空室プランの開始/停止」をクリック =====
 async function clickVacancyButton(app) {
   await sleep(1500);
 
@@ -66,19 +73,18 @@ async function clickVacancyButton(app) {
   }
 
   if (vacancyBtn) {
-    sessionStorage.setItem('pint_auto_step', 'fill_dates');
-    console.log('[PinT] 空室プランボタンをクリック');
+    autoFillStep = 'fill_dates';
+    fillDatesExecuted = false;
+    console.log('[PinT] 空室プランボタンをクリック → step=fill_dates');
     vacancyBtn.click();
   } else {
     alert('「空室プランの開始/停止」ボタンが見つかりませんでした。\n地点コード: ' + app.chiten_code + ' / 補足1: ' + app.hosoku1);
-    sessionStorage.removeItem('pint_auto_app');
-    sessionStorage.removeItem('pint_auto_step');
+    autoFillApp = null;
+    autoFillStep = null;
   }
 }
 
-// ===== ステップ3: 空室プラン入力ページで日付を設定 =====
-let fillDatesExecuted = false; // 二重実行防止フラグ
-
+// ===== ステップ3: 日付を設定して確認画面へ =====
 async function fillDates(app) {
   if (fillDatesExecuted) {
     console.log('[PinT] fillDates既に実行済み、スキップ');
@@ -166,17 +172,15 @@ async function fillDates(app) {
   }
 
   if (confirmBtn) {
-    sessionStorage.setItem('pint_auto_step', 'done');
+    autoFillStep = null;
+    autoFillApp = null;
     console.log('[PinT] 確認画面へボタンをクリック');
     confirmBtn.click();
   } else {
     console.log('[PinT] 確認画面へボタンが見つかりません');
+    autoFillStep = null;
+    autoFillApp = null;
   }
-
-  setTimeout(() => {
-    sessionStorage.removeItem('pint_auto_app');
-    sessionStorage.removeItem('pint_auto_step');
-  }, 3000);
 }
 
 // ===== URLの変化を監視して自動的に処理を継続 =====
@@ -185,25 +189,23 @@ let lastUrl = location.href;
 function checkUrlAndAct() {
   const currentUrl = location.href;
   if (currentUrl !== lastUrl) {
-    console.log('[PinT] URL変化検知: ' + lastUrl + ' → ' + currentUrl);
+    console.log('[PinT] URL変化検知: ' + lastUrl.split('?')[0] + ' → ' + currentUrl.split('?')[0]);
     lastUrl = currentUrl;
-    fillDatesExecuted = false; // URL変化時にフラグリセット
+    fillDatesExecuted = false;
     runAutoFillForCurrentPage();
   }
 }
 
 function runAutoFillForCurrentPage() {
-  const appData = sessionStorage.getItem('pint_auto_app');
-  const step = sessionStorage.getItem('pint_auto_step');
+  if (!autoFillApp || !autoFillStep) return;
 
-  if (!appData || !step) return;
-
-  const app = JSON.parse(appData);
+  const app = autoFillApp;
+  const step = autoFillStep;
   const url = location.href;
 
-  console.log('[PinT] runAutoFill step=' + step + ' url=' + url);
+  console.log('[PinT] runAutoFill step=' + step + ' url=' + url.split('?')[0]);
 
-  if (step === 'find_vacancy_btn' && url.includes('/supplypoint/') && !url.includes('turn_and_termination')) {
+  if (step === 'click_vacancy' && url.includes('/supplypoint/') && !url.includes('turn_and_termination')) {
     clickVacancyButton(app);
   } else if (step === 'fill_dates' && url.includes('turn_and_termination_vacancy')) {
     fillDates(app);
@@ -224,6 +226,8 @@ window.addEventListener('popstate', () => {
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'startFill') {
     console.log('[PinT] startFill受信 app=' + JSON.stringify(message.app));
+    autoFillApp = message.app;
+    autoFillStep = 'search';
     fillDatesExecuted = false;
     fillSupplyPointPage(message.app);
     sendResponse({ status: 'started' });
