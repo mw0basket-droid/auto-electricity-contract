@@ -107,8 +107,8 @@ jobs:
               if parsed["通電開始"]:
                   power_on_str = parsed["通電開始"]
               else:
-                  power_on_date = event_start_date + timedelta(days=1)
-                  power_on_str = power_on_date.strftime('%Y-%m-%d')
+                  # 当日の予定なので、通電開始日は当日（event_start_date）に設定
+                  power_on_str = event_start_date.strftime('%Y-%m-%d')
 
               if parsed["通電停止"]:
                   power_off_str = parsed["通電停止"]
@@ -150,8 +150,9 @@ jobs:
                   response.raise_for_status()
                   cal = Calendar.from_ical(response.text)
                   jst = pytz.timezone(TIMEZONE)
-                  tomorrow = datetime.now(jst).date() + timedelta(days=1)
-                  print(f"対象日（明日）: {tomorrow}")
+                  # 「当日」の予定を取得するように変更
+                  today = datetime.now(jst).date()
+                  print(f"対象日（当日）: {today}")
                   found_events = []
                   for component in cal.walk():
                       if component.name == "VEVENT":
@@ -165,7 +166,8 @@ jobs:
                                   event_start_date = event_dt.astimezone(jst).date()
                               elif isinstance(event_dt, date):
                                   event_start_date = event_dt
-                              if event_start_date and event_start_date == tomorrow:
+                              # 当日の予定と一致するかチェック
+                              if event_start_date and event_start_date == today:
                                   summary = str(component.get('summary'))
                                   parsed = parse_description(description)
                                   found_events.append({
@@ -221,10 +223,10 @@ jobs:
                   traceback.print_exc()
                   exit(1)
 
-              # 明日のイベントをカレンダーから取得してスプレッドシートに追加
+              # 当日のイベントをカレンダーから取得してスプレッドシートに追加
               events = get_calendar_events()
               if not events:
-                  print("明日の対象イベントはありません。")
+                  print("当日の対象イベントはありません。")
               else:
                   print(f"{len(events)}件のイベントを処理します。")
                   for event in events:
@@ -245,7 +247,7 @@ jobs:
               jst = tz.timezone("Asia/Tokyo")
               output = {
                   "generated_at": dt.now(jst).strftime("%Y-%m-%d %H:%M:%S"),
-                  "target_date": str(dt.now(jst).date() + timedelta(days=1)),
+                  "target_date": str(dt.now(jst).date()),
                   "applications": pending_applications
               }
 
