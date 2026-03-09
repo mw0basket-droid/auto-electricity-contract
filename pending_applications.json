@@ -1,13 +1,5 @@
 {
-  "generated_at": "2026-03-09 16:56:16",
+  "generated_at": "2026-03-09 16:58:41",
   "target_date": "2026-03-10",
-  "applications": [
-    {
-      "title": "プリマヴェーラST A 201",
-      "power_on": "2026-03-10",
-      "power_off": "2026-04-09",
-      "chiten_code": "014391401",
-      "hosoku1": "02010"
-    }
-  ]
+  "applications": []
 }
