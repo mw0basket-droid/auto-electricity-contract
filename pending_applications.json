@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-03-11 09:00:33",
-  "target_date": "2026-03-11",
+  "generated_at": "2026-03-11 14:51:51",
+  "target_date": "2026-03-12",
   "applications": [
     {
       "title": "イークラフトⅡ 202",
@@ -8,13 +8,6 @@
       "power_off": "2026-04-11",
       "chiten_code": "026879101",
       "hosoku1": "02020"
-    },
-    {
-      "title": "アルカンシエル Na 102",
-      "power_on": "2026-03-12",
-      "power_off": "2026-04-11",
-      "chiten_code": "013573101",
-      "hosoku1": "01020"
     },
     {
       "title": "マラマB 201",
