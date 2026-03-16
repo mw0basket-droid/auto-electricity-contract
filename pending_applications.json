@@ -1,14 +1,7 @@
 {
-  "generated_at": "2026-03-16 14:59:03",
-  "target_date": "2026-03-16",
+  "generated_at": "2026-03-16 15:50:07",
+  "target_date": "2026-03-17",
   "applications": [
-    {
-      "title": "サウスモンテ 201",
-      "power_on": "2026-03-17",
-      "power_off": "2026-04-16",
-      "chiten_code": "026161601",
-      "hosoku1": "02010"
-    },
     {
       "title": "マラマB 201",
       "power_on": "2026-03-11",
