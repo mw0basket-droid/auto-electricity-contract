@@ -1,19 +1,12 @@
 {
-  "generated_at": "2026-03-15 14:23:32",
-  "target_date": "2026-03-15",
+  "generated_at": "2026-03-16 12:02:38",
+  "target_date": "2026-03-17",
   "applications": [
     {
       "title": "サウスモンテ 201",
       "power_on": "2026-03-17",
       "power_off": "2026-04-16",
       "chiten_code": "026161601",
-      "hosoku1": "02010"
-    },
-    {
-      "title": "クレメント余戸B 201",
-      "power_on": "2026-03-13",
-      "power_off": "2026-04-12",
-      "chiten_code": "011569602",
       "hosoku1": "02010"
     },
     {
