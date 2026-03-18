@@ -1,7 +1,14 @@
 {
-  "generated_at": "2026-03-17 14:13:26",
-  "target_date": "2026-03-17",
+  "generated_at": "2026-03-18 10:28:21",
+  "target_date": "2026-03-18",
   "applications": [
+    {
+      "title": "グレイスヌーヴォーE 206",
+      "power_on": "2026-03-19",
+      "power_off": "2026-04-18",
+      "chiten_code": "022744402",
+      "hosoku1": "02050"
+    },
     {
       "title": "マラマB 201",
       "power_on": "2026-03-11",
