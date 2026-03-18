@@ -1,13 +1,5 @@
 {
-  "generated_at": "2026-03-18 14:18:49",
-  "target_date": "2026-03-18",
-  "applications": [
-    {
-      "title": "マラマB 201",
-      "power_on": "2026-03-11",
-      "power_off": "2026-04-10",
-      "chiten_code": "015865202",
-      "hosoku1": "02010"
-    }
-  ]
+  "generated_at": "2026-03-18 17:41:15",
+  "target_date": "2026-03-19",
+  "applications": []
 }
