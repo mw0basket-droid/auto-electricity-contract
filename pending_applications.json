@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-03-23 14:27:22",
-  "target_date": "2026-03-23",
+  "generated_at": "2026-03-23 15:32:03",
+  "target_date": "2026-03-24",
   "applications": [
     {
       "title": "メゾンサクラメントサウス 101",
@@ -8,13 +8,6 @@
       "power_off": "2026-04-23",
       "chiten_code": "027920201",
       "hosoku1": "01010"
-    },
-    {
-      "title": "ソルサリエンテB 202",
-      "power_on": "2026-03-24",
-      "power_off": "2026-04-23",
-      "chiten_code": "009375602",
-      "hosoku1": "02020"
     }
   ]
 }
