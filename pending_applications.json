@@ -1,14 +1,7 @@
 {
-  "generated_at": "2026-03-26 18:54:16",
+  "generated_at": "2026-03-26 18:55:06",
   "target_date": "2026-03-27",
   "applications": [
-    {
-      "title": "ジャンドフルールⅠ 303",
-      "power_on": "2026-03-26",
-      "power_off": "2026-04-25",
-      "chiten_code": "018821001",
-      "hosoku1": "03030"
-    },
     {
       "title": "カーサセレーノA 101",
       "power_on": "2026-03-26",
