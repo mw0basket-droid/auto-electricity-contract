@@ -1,14 +1,7 @@
 {
-  "generated_at": "2026-03-26 14:49:45",
-  "target_date": "2026-03-26",
+  "generated_at": "2026-03-26 18:54:16",
+  "target_date": "2026-03-27",
   "applications": [
-    {
-      "title": "アンジュベリーB 202",
-      "power_on": "2026-03-26",
-      "power_off": "2026-04-25",
-      "chiten_code": "013172402",
-      "hosoku1": "02020"
-    },
     {
       "title": "ジャンドフルールⅠ 303",
       "power_on": "2026-03-26",
