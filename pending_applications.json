@@ -1,14 +1,7 @@
 {
-  "generated_at": "2026-03-26 18:55:06",
+  "generated_at": "2026-03-26 18:56:44",
   "target_date": "2026-03-27",
   "applications": [
-    {
-      "title": "カーサセレーノA 101",
-      "power_on": "2026-03-26",
-      "power_off": "2026-04-25",
-      "chiten_code": "026911401",
-      "hosoku1": "01010"
-    },
     {
       "title": "メゾンサクラメントサウス 101",
       "power_on": "2026-03-24",
