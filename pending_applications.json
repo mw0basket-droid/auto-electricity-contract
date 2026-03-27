@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-03-27 12:06:43",
-  "target_date": "2026-03-27",
+  "generated_at": "2026-03-27 13:11:34",
+  "target_date": "2026-03-28",
   "applications": [
     {
       "title": "ルカルプポルトボヌール 203",
@@ -8,13 +8,6 @@
       "power_off": "2026-05-06",
       "chiten_code": "023036401",
       "hosoku1": "02030"
-    },
-    {
-      "title": "イークラフトⅡ 102",
-      "power_on": "2026-03-30",
-      "power_off": "2026-04-29",
-      "chiten_code": "026879101",
-      "hosoku1": "01020"
     },
     {
       "title": "ユリウス湊町 501",
