@@ -1,7 +1,35 @@
 {
-  "generated_at": "2026-03-29 14:53:00",
-  "target_date": "2026-03-29",
+  "generated_at": "2026-03-30 15:17:20",
+  "target_date": "2026-03-30",
   "applications": [
+    {
+      "title": "ユリウス湊町 606",
+      "power_on": "2026-04-08",
+      "power_off": "2026-05-07",
+      "chiten_code": "025013301",
+      "hosoku1": "06050"
+    },
+    {
+      "title": "フェリシア グレイス 202",
+      "power_on": "2026-03-30",
+      "power_off": "2026-04-30",
+      "chiten_code": "015961401",
+      "hosoku1": "02020"
+    },
+    {
+      "title": "ユリウス湊町 607",
+      "power_on": "2026-03-30",
+      "power_off": "2026-04-29",
+      "chiten_code": "025013301",
+      "hosoku1": "06050"
+    },
+    {
+      "title": "ハーモニー高岡Ⅰ 203",
+      "power_on": "2026-03-31",
+      "power_off": "2026-04-30",
+      "chiten_code": "006517001",
+      "hosoku1": "02030"
+    },
     {
       "title": "Swing Sing Ⅲ 101",
       "power_on": "2026-03-31",
