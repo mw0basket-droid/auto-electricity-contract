@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-03-31 11:02:18",
+  "generated_at": "2026-03-31 11:03:43",
   "target_date": "2026-04-01",
   "applications": [
     {
@@ -8,13 +8,6 @@
       "power_off": "2026-04-30",
       "chiten_code": "015961401",
       "hosoku1": "02020"
-    },
-    {
-      "title": "ユリウス湊町 607",
-      "power_on": "2026-03-30",
-      "power_off": "2026-04-29",
-      "chiten_code": "025013301",
-      "hosoku1": "06050"
     },
     {
       "title": "ハーモニー高岡Ⅰ 203",
