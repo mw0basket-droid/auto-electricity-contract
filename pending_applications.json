@@ -1,14 +1,7 @@
 {
-  "generated_at": "2026-03-31 11:03:43",
+  "generated_at": "2026-03-31 11:04:29",
   "target_date": "2026-04-01",
   "applications": [
-    {
-      "title": "フェリシア グレイス 202",
-      "power_on": "2026-03-30",
-      "power_off": "2026-04-30",
-      "chiten_code": "015961401",
-      "hosoku1": "02020"
-    },
     {
       "title": "ハーモニー高岡Ⅰ 203",
       "power_on": "2026-03-31",
