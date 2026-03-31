@@ -1,14 +1,7 @@
 {
-  "generated_at": "2026-03-31 11:09:47",
+  "generated_at": "2026-03-31 11:12:13",
   "target_date": "2026-04-01",
   "applications": [
-    {
-      "title": "ハーモニー高岡Ⅰ 203",
-      "power_on": "2026-03-31",
-      "power_off": "2026-04-30",
-      "chiten_code": "006517001",
-      "hosoku1": "02030"
-    },
     {
       "title": "サクラメントガーデン 203",
       "power_on": "2026-03-31",
