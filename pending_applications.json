@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-03-31 11:04:29",
+  "generated_at": "2026-03-31 11:05:30",
   "target_date": "2026-04-01",
   "applications": [
     {
@@ -29,13 +29,6 @@
       "power_off": "2026-04-30",
       "chiten_code": "025306701",
       "hosoku1": "02030"
-    },
-    {
-      "title": "ユリウス湊町 501",
-      "power_on": "2026-03-30",
-      "power_off": "2026-04-29",
-      "chiten_code": "025013301",
-      "hosoku1": "05010"
     }
   ]
 }
