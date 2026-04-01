@@ -1,13 +1,5 @@
 {
-  "generated_at": "2026-04-01 18:12:34",
+  "generated_at": "2026-04-01 19:13:35",
   "target_date": "2026-04-02",
-  "applications": [
-    {
-      "title": "メゾンサクラメントサウス 106",
-      "power_on": "2026-04-01",
-      "power_off": "2026-04-30",
-      "chiten_code": "027920201",
-      "hosoku1": "01050"
-    }
-  ]
+  "applications": []
 }
