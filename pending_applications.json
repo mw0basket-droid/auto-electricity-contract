@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-01 18:07:50",
+  "generated_at": "2026-04-01 18:08:49",
   "target_date": "2026-04-02",
   "applications": [
     {
@@ -8,13 +8,6 @@
       "power_off": "2026-04-30",
       "chiten_code": "027920201",
       "hosoku1": "01050"
-    },
-    {
-      "title": "ボヌールプラス A 102",
-      "power_on": "2026-04-01",
-      "power_off": "2026-04-30",
-      "chiten_code": "014910401",
-      "hosoku1": "01020"
     },
     {
       "title": "ティアモグロリオーサⅡ 203",
