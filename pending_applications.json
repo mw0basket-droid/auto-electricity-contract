@@ -1,14 +1,7 @@
 {
-  "generated_at": "2026-04-01 15:11:10",
-  "target_date": "2026-04-01",
+  "generated_at": "2026-04-01 18:07:10",
+  "target_date": "2026-04-02",
   "applications": [
-    {
-      "title": "シュピーレン空港通A 102",
-      "power_on": "2026-04-01",
-      "power_off": "2026-04-30",
-      "chiten_code": "007326601",
-      "hosoku1": "01020"
-    },
     {
       "title": "メゾンサクラメントサウス 106",
       "power_on": "2026-04-01",
