@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-01 18:11:06",
+  "generated_at": "2026-04-01 18:12:34",
   "target_date": "2026-04-02",
   "applications": [
     {
@@ -8,13 +8,6 @@
       "power_off": "2026-04-30",
       "chiten_code": "027920201",
       "hosoku1": "01050"
-    },
-    {
-      "title": "サクラメントガーデン 203",
-      "power_on": "2026-03-31",
-      "power_off": "2026-04-30",
-      "chiten_code": "025306701",
-      "hosoku1": "02030"
     }
   ]
 }
