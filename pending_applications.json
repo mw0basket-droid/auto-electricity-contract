@@ -1,7 +1,14 @@
 {
-  "generated_at": "2026-04-04 09:03:13",
-  "target_date": "2026-04-04",
+  "generated_at": "2026-04-05 09:02:05",
+  "target_date": "2026-04-05",
   "applications": [
+    {
+      "title": "パインビレッジ 102",
+      "power_on": "2026-04-07",
+      "power_off": "2026-05-06",
+      "chiten_code": "025629201",
+      "hosoku1": "01020"
+    },
     {
       "title": "ユリウス湊町 706",
       "power_on": "2026-04-06",
