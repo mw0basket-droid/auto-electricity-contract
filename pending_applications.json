@@ -1,7 +1,14 @@
 {
-  "generated_at": "2026-04-11 09:59:41",
-  "target_date": "2026-04-11",
+  "generated_at": "2026-04-12 09:04:55",
+  "target_date": "2026-04-12",
   "applications": [
+    {
+      "title": "キャッスルコート B 202",
+      "power_on": "2026-04-14",
+      "power_off": "2026-05-13",
+      "chiten_code": "005743602",
+      "hosoku1": "02020"
+    },
     {
       "title": "メゾンサクラメントサウス 305",
       "power_on": "2026-04-13",
