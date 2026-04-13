@@ -1,7 +1,21 @@
 {
-  "generated_at": "2026-04-12 09:04:55",
-  "target_date": "2026-04-12",
+  "generated_at": "2026-04-13 10:09:43",
+  "target_date": "2026-04-13",
   "applications": [
+    {
+      "title": "ティアモグロリオーサⅡ 101",
+      "power_on": "2026-04-14",
+      "power_off": "2026-05-13",
+      "chiten_code": "020195302",
+      "hosoku1": "01010"
+    },
+    {
+      "title": "フォルトゥーナⅡ 202",
+      "power_on": "2026-04-14",
+      "power_off": "2026-05-13",
+      "chiten_code": "017915302",
+      "hosoku1": "02020"
+    },
     {
       "title": "キャッスルコート B 202",
       "power_on": "2026-04-14",
