@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-17 19:32:20",
+  "generated_at": "2026-04-17 19:34:27",
   "target_date": "2026-04-18",
   "applications": [
     {
@@ -8,13 +8,6 @@
       "power_off": "2026-05-13",
       "chiten_code": "020195302",
       "hosoku1": "01010"
-    },
-    {
-      "title": "フォルトゥーナⅡ 202",
-      "power_on": "2026-04-14",
-      "power_off": "2026-05-13",
-      "chiten_code": "017915302",
-      "hosoku1": "02020"
     },
     {
       "title": "キャッスルコート B 202",
