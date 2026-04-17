@@ -1,14 +1,7 @@
 {
-  "generated_at": "2026-04-17 10:10:01",
-  "target_date": "2026-04-17",
+  "generated_at": "2026-04-17 19:32:20",
+  "target_date": "2026-04-18",
   "applications": [
-    {
-      "title": "シャルマンⅢ 203",
-      "power_on": "2026-04-17",
-      "power_off": "2026-05-16",
-      "chiten_code": "025185101",
-      "hosoku1": "02030"
-    },
     {
       "title": "ティアモグロリオーサⅡ 101",
       "power_on": "2026-04-14",
