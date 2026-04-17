@@ -1,14 +1,7 @@
 {
-  "generated_at": "2026-04-17 19:34:27",
+  "generated_at": "2026-04-17 19:39:08",
   "target_date": "2026-04-18",
   "applications": [
-    {
-      "title": "ティアモグロリオーサⅡ 101",
-      "power_on": "2026-04-14",
-      "power_off": "2026-05-13",
-      "chiten_code": "020195302",
-      "hosoku1": "01010"
-    },
     {
       "title": "キャッスルコート B 202",
       "power_on": "2026-04-14",
