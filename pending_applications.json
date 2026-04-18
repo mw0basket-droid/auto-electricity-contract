@@ -1,13 +1,13 @@
 {
-  "generated_at": "2026-04-17 19:39:49",
+  "generated_at": "2026-04-18 10:02:57",
   "target_date": "2026-04-18",
   "applications": [
     {
-      "title": "メゾンサクラメントサウス 305",
-      "power_on": "2026-04-13",
-      "power_off": "2026-05-12",
-      "chiten_code": "027920201",
-      "hosoku1": "03040"
+      "title": "クレイドル 201",
+      "power_on": "2026-04-21",
+      "power_off": "2026-05-20",
+      "chiten_code": "018739401",
+      "hosoku1": "02010"
     },
     {
       "title": "ガーデン西垣生 201",
