@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-04-20 10:10:36",
-  "target_date": "2026-04-20",
+  "generated_at": "2026-04-20 19:13:05",
+  "target_date": "2026-04-21",
   "applications": [
     {
       "title": "ユリウス湊町 305",
@@ -8,13 +8,6 @@
       "power_off": "2026-05-20",
       "chiten_code": "025013301",
       "hosoku1": "03040"
-    },
-    {
-      "title": "パールハイツ A 101",
-      "power_on": "2026-04-21",
-      "power_off": "2026-05-20",
-      "chiten_code": "007138401",
-      "hosoku1": "01010"
     },
     {
       "title": "クレイドル 201",
