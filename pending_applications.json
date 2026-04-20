@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-20 19:13:05",
+  "generated_at": "2026-04-20 19:13:37",
   "target_date": "2026-04-21",
   "applications": [
     {
@@ -8,13 +8,6 @@
       "power_off": "2026-05-20",
       "chiten_code": "025013301",
       "hosoku1": "03040"
-    },
-    {
-      "title": "クレイドル 201",
-      "power_on": "2026-04-21",
-      "power_off": "2026-05-20",
-      "chiten_code": "018739401",
-      "hosoku1": "02010"
     },
     {
       "title": "ガーデン西垣生 201",
