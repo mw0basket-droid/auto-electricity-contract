@@ -1,7 +1,14 @@
 {
-  "generated_at": "2026-04-22 10:06:26",
-  "target_date": "2026-04-22",
+  "generated_at": "2026-04-23 10:13:46",
+  "target_date": "2026-04-23",
   "applications": [
+    {
+      "title": "ルバンブー空港通 202",
+      "power_on": "2026-04-24",
+      "power_off": "2026-05-23",
+      "chiten_code": "024911201",
+      "hosoku1": "02020"
+    },
     {
       "title": "シャルマンⅢ 207",
       "power_on": "2026-04-22",
