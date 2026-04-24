@@ -1,14 +1,7 @@
 {
-  "generated_at": "2026-04-24 19:09:11",
+  "generated_at": "2026-04-24 19:09:48",
   "target_date": "2026-04-25",
   "applications": [
-    {
-      "title": "シャルマンⅢ 207",
-      "power_on": "2026-04-22",
-      "power_off": "2026-05-21",
-      "chiten_code": "025185101",
-      "hosoku1": "02060"
-    },
     {
       "title": "ユリウス湊町 305",
       "power_on": "2026-04-21",
