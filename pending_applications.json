@@ -1,14 +1,7 @@
 {
-  "generated_at": "2026-04-24 19:10:31",
+  "generated_at": "2026-04-25 10:05:46",
   "target_date": "2026-04-25",
   "applications": [
-    {
-      "title": "ユリウス湊町 305",
-      "power_on": "2026-04-21",
-      "power_off": "2026-05-20",
-      "chiten_code": "025013301",
-      "hosoku1": "03040"
-    },
     {
       "title": "パインビレッジ 102",
       "power_on": "2026-04-07",
