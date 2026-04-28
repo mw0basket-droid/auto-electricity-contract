@@ -1,7 +1,21 @@
 {
-  "generated_at": "2026-04-27 10:15:22",
-  "target_date": "2026-04-27",
+  "generated_at": "2026-04-28 10:23:01",
+  "target_date": "2026-04-28",
   "applications": [
+    {
+      "title": "サクラメントスクエアB 105",
+      "power_on": "2026-04-30",
+      "power_off": "2026-05-29",
+      "chiten_code": "024736902",
+      "hosoku1": "01040"
+    },
+    {
+      "title": "ユマージュソレイユ 302",
+      "power_on": "2026-04-30",
+      "power_off": "2026-05-29",
+      "chiten_code": "020429901",
+      "hosoku1": "03030"
+    },
     {
       "title": "パインビレッジ 102",
       "power_on": "2026-04-07",
