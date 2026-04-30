@@ -1,7 +1,42 @@
 {
-  "generated_at": "2026-04-28 10:23:01",
-  "target_date": "2026-04-28",
+  "generated_at": "2026-04-30 10:23:46",
+  "target_date": "2026-04-30",
   "applications": [
+    {
+      "title": "プリマヴェーラST　A 203",
+      "power_on": "2026-05-01",
+      "power_off": "2026-05-31",
+      "chiten_code": "014391401",
+      "hosoku1": "02030"
+    },
+    {
+      "title": "陽和Ⅱ 202",
+      "power_on": "2026-05-01",
+      "power_off": "2026-05-31",
+      "chiten_code": "017117602",
+      "hosoku1": "02020"
+    },
+    {
+      "title": "グレイスヌーヴォーE 203",
+      "power_on": "2026-05-01",
+      "power_off": "2026-05-31",
+      "chiten_code": "022744402",
+      "hosoku1": "02030"
+    },
+    {
+      "title": "シャンドフルールⅠ 206",
+      "power_on": "2026-05-01",
+      "power_off": "2026-05-31",
+      "chiten_code": "018821001",
+      "hosoku1": "02050"
+    },
+    {
+      "title": "パサージュ南斎院 203",
+      "power_on": "2026-05-01",
+      "power_off": "2026-05-31",
+      "chiten_code": "020107601",
+      "hosoku1": "02030"
+    },
     {
       "title": "サクラメントスクエアB 105",
       "power_on": "2026-04-30",
