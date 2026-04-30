@@ -1,14 +1,7 @@
 {
-  "generated_at": "2026-04-30 19:16:44",
+  "generated_at": "2026-04-30 19:17:46",
   "target_date": "2026-05-01",
   "applications": [
-    {
-      "title": "陽和Ⅱ 202",
-      "power_on": "2026-05-01",
-      "power_off": "2026-05-31",
-      "chiten_code": "017117602",
-      "hosoku1": "02020"
-    },
     {
       "title": "グレイスヌーヴォーE 203",
       "power_on": "2026-05-01",
