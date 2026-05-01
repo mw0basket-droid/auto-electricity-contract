@@ -1,14 +1,7 @@
 {
-  "generated_at": "2026-05-01 12:18:37",
+  "generated_at": "2026-05-01 12:19:06",
   "target_date": "2026-05-02",
   "applications": [
-    {
-      "title": "エクセル駅前 202",
-      "power_on": "2026-05-07",
-      "power_off": "2026-06-06",
-      "chiten_code": "022570701",
-      "hosoku1": "02020"
-    },
     {
       "title": "グレイスヌーヴォーE 203",
       "power_on": "2026-05-01",
