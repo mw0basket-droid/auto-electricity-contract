@@ -1,14 +1,7 @@
 {
-  "generated_at": "2026-05-01 12:17:45",
+  "generated_at": "2026-05-01 12:18:37",
   "target_date": "2026-05-02",
   "applications": [
-    {
-      "title": "パサージュ南斎院 203",
-      "power_on": "2026-05-07",
-      "power_off": "2026-06-06",
-      "chiten_code": "020107601",
-      "hosoku1": "02030"
-    },
     {
       "title": "エクセル駅前 202",
       "power_on": "2026-05-07",
