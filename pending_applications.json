@@ -1,19 +1,12 @@
 {
-  "generated_at": "2026-05-01 10:27:43",
-  "target_date": "2026-05-01",
+  "generated_at": "2026-05-01 12:17:45",
+  "target_date": "2026-05-02",
   "applications": [
     {
       "title": "パサージュ南斎院 203",
       "power_on": "2026-05-07",
       "power_off": "2026-06-06",
       "chiten_code": "020107601",
-      "hosoku1": "02030"
-    },
-    {
-      "title": "ハイムサンヒルズA 203",
-      "power_on": "2026-05-07",
-      "power_off": "2026-06-06",
-      "chiten_code": "007935501",
       "hosoku1": "02030"
     },
     {
