@@ -1,7 +1,21 @@
 {
-  "generated_at": "2026-05-06 10:18:35",
-  "target_date": "2026-05-06",
+  "generated_at": "2026-05-07 10:24:15",
+  "target_date": "2026-05-07",
   "applications": [
+    {
+      "title": "ルカルプポルトボヌール 101",
+      "power_on": "2026-05-08",
+      "power_off": "2026-06-07",
+      "chiten_code": "023036401",
+      "hosoku1": "01010"
+    },
+    {
+      "title": "陽和 Ⅱ 201",
+      "power_on": "2026-05-08",
+      "power_off": "2026-06-07",
+      "chiten_code": "017117602",
+      "hosoku1": "02010"
+    },
     {
       "title": "陽和Ⅱ 201",
       "power_on": "2026-05-08",
