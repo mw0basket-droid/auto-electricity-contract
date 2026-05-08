@@ -1,34 +1,13 @@
 {
-  "generated_at": "2026-05-08 19:01:56",
+  "generated_at": "2026-05-08 19:03:42",
   "target_date": "2026-05-09",
   "applications": [
-    {
-      "title": "ルカルプポルトボヌール 101",
-      "power_on": "2026-05-08",
-      "power_off": "2026-06-07",
-      "chiten_code": "023036401",
-      "hosoku1": "01010"
-    },
-    {
-      "title": "陽和Ⅱ 201",
-      "power_on": "2026-05-08",
-      "power_off": "2026-06-07",
-      "chiten_code": "017117602",
-      "hosoku1": "02010"
-    },
     {
       "title": "シャンドフルールⅠ 206",
       "power_on": "2026-05-01",
       "power_off": "2026-05-31",
       "chiten_code": "018821001",
       "hosoku1": "02050"
-    },
-    {
-      "title": "パサージュ南斎院 203",
-      "power_on": "2026-05-01",
-      "power_off": "2026-05-31",
-      "chiten_code": "020107601",
-      "hosoku1": "02030"
     }
   ]
 }
