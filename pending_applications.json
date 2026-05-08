@@ -1,13 +1,5 @@
 {
-  "generated_at": "2026-05-08 19:03:42",
+  "generated_at": "2026-05-08 19:05:41",
   "target_date": "2026-05-09",
-  "applications": [
-    {
-      "title": "シャンドフルールⅠ 206",
-      "power_on": "2026-05-01",
-      "power_off": "2026-05-31",
-      "chiten_code": "018821001",
-      "hosoku1": "02050"
-    }
-  ]
+  "applications": []
 }
