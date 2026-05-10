@@ -1,5 +1,13 @@
 {
-  "generated_at": "2026-05-09 10:23:52",
-  "target_date": "2026-05-09",
-  "applications": []
+  "generated_at": "2026-05-10 10:25:56",
+  "target_date": "2026-05-10",
+  "applications": [
+    {
+      "title": "エクセル駅前 101",
+      "power_on": "2026-05-12",
+      "power_off": "2026-06-11",
+      "chiten_code": "022570701",
+      "hosoku1": "01010"
+    }
+  ]
 }
