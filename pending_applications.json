@@ -1,14 +1,7 @@
 {
-  "generated_at": "2026-05-27 10:52:39",
-  "target_date": "2026-05-27",
+  "generated_at": "2026-05-27 19:35:56",
+  "target_date": "2026-05-28",
   "applications": [
-    {
-      "title": "ティアモグロリオーサⅡ 102",
-      "power_on": "2026-05-28",
-      "power_off": "2026-06-27",
-      "chiten_code": "020195302",
-      "hosoku1": "01020"
-    },
     {
       "title": "エクセル駅前 101",
       "power_on": "2026-05-12",
