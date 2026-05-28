@@ -1,13 +1,13 @@
 {
-  "generated_at": "2026-05-27 19:35:56",
+  "generated_at": "2026-05-28 10:25:24",
   "target_date": "2026-05-28",
   "applications": [
     {
-      "title": "エクセル駅前 101",
-      "power_on": "2026-05-12",
-      "power_off": "2026-06-11",
-      "chiten_code": "022570701",
-      "hosoku1": "01010"
+      "title": "カルフールS 106",
+      "power_on": "2026-05-29",
+      "power_off": "2026-06-28",
+      "chiten_code": "011761001",
+      "hosoku1": "01050"
     }
   ]
 }
