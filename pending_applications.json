@@ -1,7 +1,14 @@
 {
-  "generated_at": "2026-05-31 10:52:28",
-  "target_date": "2026-05-31",
+  "generated_at": "2026-06-01 11:01:32",
+  "target_date": "2026-06-01",
   "applications": [
+    {
+      "title": "モンテ・グリシーヌ 101",
+      "power_on": "2026-06-02",
+      "power_off": "2026-07-01",
+      "chiten_code": "017499501",
+      "hosoku1": "01010"
+    },
     {
       "title": "メルローズ 301",
       "power_on": "2026-06-02",
