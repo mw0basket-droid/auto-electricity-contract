@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-02 09:36:28",
+  "generated_at": "2026-06-02 09:36:59",
   "target_date": "2026-06-03",
   "applications": [
     {
@@ -8,13 +8,6 @@
       "power_off": "2026-07-01",
       "chiten_code": "017499501",
       "hosoku1": "01010"
-    },
-    {
-      "title": "ボワ ソーム 202",
-      "power_on": "2026-06-02",
-      "power_off": "2026-07-01",
-      "chiten_code": "022840301",
-      "hosoku1": "02020"
     },
     {
       "title": "プロムナードＷＳⅡ 103",
