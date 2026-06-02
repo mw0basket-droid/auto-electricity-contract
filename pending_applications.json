@@ -1,7 +1,14 @@
 {
-  "generated_at": "2026-06-02 09:39:52",
-  "target_date": "2026-06-03",
+  "generated_at": "2026-06-02 11:03:19",
+  "target_date": "2026-06-02",
   "applications": [
+    {
+      "title": "クラベールハウス 0103",
+      "power_on": "2026-06-03",
+      "power_off": "2026-07-02",
+      "chiten_code": "011438401",
+      "hosoku1": "01030"
+    },
     {
       "title": "モンテ・グリシーヌ 101",
       "power_on": "2026-06-02",
