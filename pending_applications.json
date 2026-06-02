@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-02 09:38:13",
+  "generated_at": "2026-06-02 09:39:03",
   "target_date": "2026-06-03",
   "applications": [
     {
@@ -15,13 +15,6 @@
       "power_off": "2026-07-01",
       "chiten_code": "007529001",
       "hosoku1": "02010"
-    },
-    {
-      "title": "恵風 102",
-      "power_on": "2026-06-01",
-      "power_off": "2026-06-30",
-      "chiten_code": "020470601",
-      "hosoku1": "01020"
     },
     {
       "title": "カルフールS 106",
