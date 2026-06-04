@@ -1,14 +1,7 @@
 {
-  "generated_at": "2026-06-04 12:43:16",
+  "generated_at": "2026-06-04 12:43:51",
   "target_date": "2026-06-05",
   "applications": [
-    {
-      "title": "Ｓｗｉｎｇ ＳｉｎｇⅢ 202",
-      "power_on": "2026-06-05",
-      "power_off": "2026-07-04",
-      "chiten_code": "026598901",
-      "hosoku1": "02020"
-    },
     {
       "title": "クラベールハウス 0103",
       "power_on": "2026-06-03",
