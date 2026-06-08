@@ -1,5 +1,13 @@
 {
-  "generated_at": "2026-06-07 10:56:15",
-  "target_date": "2026-06-07",
-  "applications": []
+  "generated_at": "2026-06-08 11:01:55",
+  "target_date": "2026-06-08",
+  "applications": [
+    {
+      "title": "ファミールアトラスＢ 201",
+      "power_on": "2026-06-09",
+      "power_off": "2026-07-08",
+      "chiten_code": "007529002",
+      "hosoku1": "02010"
+    }
+  ]
 }
