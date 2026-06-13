@@ -1,7 +1,14 @@
 {
-  "generated_at": "2026-06-12 11:00:00",
-  "target_date": "2026-06-12",
+  "generated_at": "2026-06-13 10:52:41",
+  "target_date": "2026-06-13",
   "applications": [
+    {
+      "title": "アイローサＢ 101",
+      "power_on": "2026-06-16",
+      "power_off": "2026-07-15",
+      "chiten_code": "018494002",
+      "hosoku1": "01010"
+    },
     {
       "title": "マラマ　Ａ 202",
       "power_on": "2026-06-15",
