@@ -1,14 +1,7 @@
 {
-  "generated_at": "2026-06-16 12:15:46",
+  "generated_at": "2026-06-16 12:16:35",
   "target_date": "2026-06-17",
   "applications": [
-    {
-      "title": "マラマ　Ａ 202",
-      "power_on": "2026-06-15",
-      "power_off": "2026-07-14",
-      "chiten_code": "015865201",
-      "hosoku1": "02020"
-    },
     {
       "title": "ファミールアトラスＢ 201",
       "power_on": "2026-06-09",
