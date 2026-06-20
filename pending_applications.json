@@ -1,7 +1,14 @@
 {
-  "generated_at": "2026-06-19 11:31:30",
-  "target_date": "2026-06-19",
+  "generated_at": "2026-06-20 10:51:54",
+  "target_date": "2026-06-20",
   "applications": [
+    {
+      "title": "カルフ－ルＳ 105",
+      "power_on": "2026-06-23",
+      "power_off": "2026-07-22",
+      "chiten_code": "011761001",
+      "hosoku1": "01040"
+    },
     {
       "title": "ファミールアトラスＢ 201",
       "power_on": "2026-06-09",
