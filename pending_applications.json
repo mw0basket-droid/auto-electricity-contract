@@ -1,7 +1,14 @@
 {
-  "generated_at": "2026-06-25 11:27:12",
+  "generated_at": "2026-06-26 10:52:28",
   "target_date": "2026-06-26",
   "applications": [
+    {
+      "title": "ボワ ソーム 103",
+      "power_on": "2026-06-29",
+      "power_off": "2026-07-28",
+      "chiten_code": "022840301",
+      "hosoku1": "01030"
+    },
     {
       "title": "フェリシア・リーフ 103",
       "power_on": "2026-06-26",
