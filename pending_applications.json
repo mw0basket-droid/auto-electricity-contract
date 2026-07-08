@@ -1,14 +1,7 @@
 {
-  "generated_at": "2026-07-07 10:24:07",
-  "target_date": "2026-07-07",
+  "generated_at": "2026-07-08 09:12:02",
+  "target_date": "2026-07-09",
   "applications": [
-    {
-      "title": "イークラフトⅡ 103",
-      "power_on": "2026-07-01",
-      "power_off": "2026-07-31",
-      "chiten_code": "026879101",
-      "hosoku1": "01030"
-    },
     {
       "title": "アネックス・アルファ 201",
       "power_on": "2026-07-01",
