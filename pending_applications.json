@@ -1,20 +1,5 @@
 {
-  "generated_at": "2026-07-21 17:32:01",
+  "generated_at": "2026-07-22 10:08:09",
   "target_date": "2026-07-22",
-  "applications": [
-    {
-      "title": "アネックス・アルファ 201",
-      "power_on": "2026-07-01",
-      "power_off": "2026-07-31",
-      "chiten_code": "027471501",
-      "hosoku1": "02010"
-    },
-    {
-      "title": "ファミールアトラスＢ 201",
-      "power_on": "2026-06-09",
-      "power_off": "2026-07-08",
-      "chiten_code": "007529002",
-      "hosoku1": "02010"
-    }
-  ]
+  "applications": []
 }
