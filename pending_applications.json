@@ -1,5 +1,13 @@
 {
-  "generated_at": "2026-07-29 10:09:39",
-  "target_date": "2026-07-29",
-  "applications": []
+  "generated_at": "2026-07-30 10:02:24",
+  "target_date": "2026-07-30",
+  "applications": [
+    {
+      "title": "ヴィコロ竹原 202",
+      "power_on": "2026-07-31",
+      "power_off": "2026-08-30",
+      "chiten_code": "007822201",
+      "hosoku1": "02020"
+    }
+  ]
 }
