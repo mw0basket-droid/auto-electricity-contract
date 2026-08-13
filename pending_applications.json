@@ -1,7 +1,14 @@
 {
-  "generated_at": "2026-08-12 09:42:23",
-  "target_date": "2026-08-12",
+  "generated_at": "2026-08-13 09:44:17",
+  "target_date": "2026-08-13",
   "applications": [
+    {
+      "title": "フェリシア・リーフ 202",
+      "power_on": "2026-08-14",
+      "power_off": "2026-09-13",
+      "chiten_code": "015961402",
+      "hosoku1": "02020"
+    },
     {
       "title": "マラマ　Ａ 203",
       "power_on": "2026-08-07",
