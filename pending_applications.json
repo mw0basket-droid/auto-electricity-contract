@@ -1,7 +1,14 @@
 {
-  "generated_at": "2026-08-14 09:43:24",
-  "target_date": "2026-08-14",
+  "generated_at": "2026-08-15 08:59:58",
+  "target_date": "2026-08-15",
   "applications": [
+    {
+      "title": "シュピーレン空港通Ｃ 202",
+      "power_on": "2026-08-18",
+      "power_off": "2026-09-17",
+      "chiten_code": "007388101",
+      "hosoku1": "02020"
+    },
     {
       "title": "フェリシア・リーフ 202",
       "power_on": "2026-08-14",
