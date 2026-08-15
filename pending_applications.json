@@ -1,7 +1,14 @@
 {
-  "generated_at": "2026-08-15 08:59:58",
-  "target_date": "2026-08-15",
+  "generated_at": "2026-08-16 08:57:27",
+  "target_date": "2026-08-16",
   "applications": [
+    {
+      "title": "幸風 101",
+      "power_on": "2026-08-18",
+      "power_off": "2026-09-17",
+      "chiten_code": "021602401",
+      "hosoku1": "01010"
+    },
     {
       "title": "シュピーレン空港通Ｃ 202",
       "power_on": "2026-08-18",
