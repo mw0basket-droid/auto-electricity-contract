@@ -1,7 +1,28 @@
 {
-  "generated_at": "2026-08-30 10:42:04",
-  "target_date": "2026-08-30",
+  "generated_at": "2026-08-31 10:37:15",
+  "target_date": "2026-08-31",
   "applications": [
+    {
+      "title": "ル・バンブー空港通 102",
+      "power_on": "2026-09-08",
+      "power_off": "2026-10-07",
+      "chiten_code": "024911201",
+      "hosoku1": "01020"
+    },
+    {
+      "title": "幸風 206",
+      "power_on": "2026-09-01",
+      "power_off": "2026-09-30",
+      "chiten_code": "021602401",
+      "hosoku1": "02050"
+    },
+    {
+      "title": "クレメント余戸Ａ 102",
+      "power_on": "2026-09-01",
+      "power_off": "2026-09-30",
+      "chiten_code": "011569601",
+      "hosoku1": "01020"
+    },
     {
       "title": "幸風 101",
       "power_on": "2026-08-18",
