@@ -1,14 +1,7 @@
 {
-  "generated_at": "2026-08-31 14:18:02",
+  "generated_at": "2026-08-31 14:19:02",
   "target_date": "2026-09-01",
   "applications": [
-    {
-      "title": "幸風 206",
-      "power_on": "2026-09-01",
-      "power_off": "2026-09-30",
-      "chiten_code": "021602401",
-      "hosoku1": "02050"
-    },
     {
       "title": "クレメント余戸Ａ 102",
       "power_on": "2026-09-01",
