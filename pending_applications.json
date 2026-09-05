@@ -1,7 +1,14 @@
 {
-  "generated_at": "2026-09-04 10:22:38",
-  "target_date": "2026-09-04",
+  "generated_at": "2026-09-05 10:25:54",
+  "target_date": "2026-09-05",
   "applications": [
+    {
+      "title": "アーク・ガーデンＣ 101",
+      "power_on": "2026-09-08",
+      "power_off": "2026-10-07",
+      "chiten_code": "022671903",
+      "hosoku1": "01010"
+    },
     {
       "title": "幸風 101",
       "power_on": "2026-08-18",
