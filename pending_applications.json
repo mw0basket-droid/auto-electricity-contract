@@ -1,13 +1,5 @@
 {
-  "generated_at": "2026-09-11 17:40:38",
+  "generated_at": "2026-09-11 17:40:57",
   "target_date": "2026-09-12",
-  "applications": [
-    {
-      "title": "幸風 101",
-      "power_on": "2026-08-18",
-      "power_off": "2026-09-17",
-      "chiten_code": "021602401",
-      "hosoku1": "01010"
-    }
-  ]
+  "applications": []
 }
