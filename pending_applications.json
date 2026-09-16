@@ -1,13 +1,5 @@
 {
-  "generated_at": "2026-09-16 10:42:21",
-  "target_date": "2026-09-16",
-  "applications": [
-    {
-      "title": "エレガンツァ・プリムラⅡ 102",
-      "power_on": "2026-09-17",
-      "power_off": "2026-10-16",
-      "chiten_code": "015084201",
-      "hosoku1": "01020"
-    }
-  ]
+  "generated_at": "2026-09-16 14:10:39",
+  "target_date": "2026-09-17",
+  "applications": []
 }
