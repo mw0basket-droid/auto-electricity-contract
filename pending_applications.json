@@ -1,5 +1,13 @@
 {
-  "generated_at": "2026-09-23 10:48:49",
-  "target_date": "2026-09-23",
-  "applications": []
+  "generated_at": "2026-09-24 10:39:37",
+  "target_date": "2026-09-24",
+  "applications": [
+    {
+      "title": "アネックス斉院Ａ 102",
+      "power_on": "2026-09-25",
+      "power_off": "2026-10-24",
+      "chiten_code": "007982401",
+      "hosoku1": "01020"
+    }
+  ]
 }
