@@ -1,5 +1,20 @@
 {
-  "generated_at": "2026-09-24 15:08:50",
+  "generated_at": "2026-09-25 10:55:26",
   "target_date": "2026-09-25",
-  "applications": []
+  "applications": [
+    {
+      "title": "シームリーハウス南斎院 201（連絡あり）",
+      "power_on": "2026-09-28",
+      "power_off": "2026-10-27",
+      "chiten_code": "021249601",
+      "hosoku1": "02010"
+    },
+    {
+      "title": "マーベラスライフⅠ 201",
+      "power_on": "2026-09-28",
+      "power_off": "2026-10-27",
+      "chiten_code": "013675101",
+      "hosoku1": "02010"
+    }
+  ]
 }
