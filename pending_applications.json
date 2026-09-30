@@ -1,5 +1,48 @@
 {
-  "generated_at": "2026-09-29 14:33:39",
+  "generated_at": "2026-09-30 11:25:28",
   "target_date": "2026-09-30",
-  "applications": []
+  "applications": [
+    {
+      "title": "ラ・フィレッジ・Ｓ 101",
+      "power_on": "2026-10-01",
+      "power_off": "2026-10-31",
+      "chiten_code": "015146602",
+      "hosoku1": "01010"
+    },
+    {
+      "title": "パイン　ビレッジ 203",
+      "power_on": "2026-10-01",
+      "power_off": "2026-10-31",
+      "chiten_code": "025629201",
+      "hosoku1": "02030"
+    },
+    {
+      "title": "アイリス・フルーヴⅠ 101",
+      "power_on": "2026-10-01",
+      "power_off": "2026-10-31",
+      "chiten_code": "017354001",
+      "hosoku1": "01010"
+    },
+    {
+      "title": "アネックス・アルファ 101",
+      "power_on": "2026-10-01",
+      "power_off": "2026-10-31",
+      "chiten_code": "027471501",
+      "hosoku1": "01010"
+    },
+    {
+      "title": "シャーロームＮ 203",
+      "power_on": "2026-10-01",
+      "power_off": "2026-10-31",
+      "chiten_code": "026785302",
+      "hosoku1": "02030"
+    },
+    {
+      "title": "パイン　ビレッジ 105",
+      "power_on": "2026-10-01",
+      "power_off": "2026-10-31",
+      "chiten_code": "025629201",
+      "hosoku1": "01040"
+    }
+  ]
 }
