@@ -1,7 +1,21 @@
 {
-  "generated_at": "2026-09-30 11:25:28",
-  "target_date": "2026-09-30",
+  "generated_at": "2026-10-01 11:27:46",
+  "target_date": "2026-10-01",
   "applications": [
+    {
+      "title": "マラマ　Ｂ 205",
+      "power_on": "2026-10-02",
+      "power_off": "2026-11-01",
+      "chiten_code": "015865202",
+      "hosoku1": "02040"
+    },
+    {
+      "title": "モンテ・グリシーヌ 103",
+      "power_on": "2026-10-02",
+      "power_off": "2026-11-01",
+      "chiten_code": "017499501",
+      "hosoku1": "01030"
+    },
     {
       "title": "ラ・フィレッジ・Ｓ 101",
       "power_on": "2026-10-01",
