@@ -1,7 +1,14 @@
 {
-  "generated_at": "2026-10-02 11:35:19",
-  "target_date": "2026-10-02",
+  "generated_at": "2026-10-03 11:20:18",
+  "target_date": "2026-10-03",
   "applications": [
+    {
+      "title": "グランデュール南斎院 203",
+      "power_on": "2026-10-06",
+      "power_off": "2026-11-05",
+      "chiten_code": "022664901",
+      "hosoku1": "02030"
+    },
     {
       "title": "マラマ　Ｂ 205",
       "power_on": "2026-10-02",
