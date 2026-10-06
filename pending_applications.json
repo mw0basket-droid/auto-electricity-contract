@@ -1,7 +1,14 @@
 {
-  "generated_at": "2026-10-05 11:24:43",
-  "target_date": "2026-10-05",
+  "generated_at": "2026-10-06 12:21:14",
+  "target_date": "2026-10-06",
   "applications": [
+    {
+      "title": "パイン　ビレッジ 202",
+      "power_on": "2026-10-07",
+      "power_off": "2026-11-06",
+      "chiten_code": "025629201",
+      "hosoku1": "02020"
+    },
     {
       "title": "マーヴェラス竹原Ａ 103",
       "power_on": "2026-10-06",
