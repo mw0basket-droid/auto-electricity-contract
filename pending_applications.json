@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-10-12 11:39:29",
-  "target_date": "2026-10-12",
+  "generated_at": "2026-10-13 10:01:37",
+  "target_date": "2026-10-14",
   "applications": [
     {
       "title": "パイン　ビレッジ 202",
@@ -22,13 +22,6 @@
       "power_off": "2026-11-05",
       "chiten_code": "022664901",
       "hosoku1": "02030"
-    },
-    {
-      "title": "マラマ　Ｂ 205",
-      "power_on": "2026-10-02",
-      "power_off": "2026-11-01",
-      "chiten_code": "015865202",
-      "hosoku1": "02040"
     },
     {
       "title": "モンテ・グリシーヌ 103",
