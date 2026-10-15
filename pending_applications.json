@@ -1,5 +1,13 @@
 {
-  "generated_at": "2026-10-14 11:10:07",
-  "target_date": "2026-10-14",
-  "applications": []
+  "generated_at": "2026-10-15 10:51:37",
+  "target_date": "2026-10-15",
+  "applications": [
+    {
+      "title": "パイン　ビレッジ 101",
+      "power_on": "2026-10-16",
+      "power_off": "2026-11-15",
+      "chiten_code": "025629201",
+      "hosoku1": "01010"
+    }
+  ]
 }
