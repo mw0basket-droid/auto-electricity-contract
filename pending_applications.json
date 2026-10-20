@@ -1,5 +1,13 @@
 {
-  "generated_at": "2026-10-19 12:42:39",
+  "generated_at": "2026-10-20 11:06:39",
   "target_date": "2026-10-20",
-  "applications": []
+  "applications": [
+    {
+      "title": "Ｓｗｉｎｇ　ＳｉｎｇⅢ 203",
+      "power_on": "2026-10-21",
+      "power_off": "2026-11-20",
+      "chiten_code": "026598901",
+      "hosoku1": "02030"
+    }
+  ]
 }
