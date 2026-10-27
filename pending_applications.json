@@ -1,13 +1,5 @@
 {
-  "generated_at": "2026-10-27 11:26:11",
-  "target_date": "2026-10-27",
-  "applications": [
-    {
-      "title": "ドミールｉｎ外環余戸　Ｂ 102",
-      "power_on": "2026-10-27",
-      "power_off": "2026-11-26",
-      "chiten_code": "026300802",
-      "hosoku1": "01020"
-    }
-  ]
+  "generated_at": "2026-10-27 20:02:22",
+  "target_date": "2026-10-28",
+  "applications": []
 }
