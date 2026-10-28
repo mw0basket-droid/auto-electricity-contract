@@ -1,5 +1,13 @@
 {
-  "generated_at": "2026-10-27 20:02:22",
+  "generated_at": "2026-10-28 11:35:20",
   "target_date": "2026-10-28",
-  "applications": []
+  "applications": [
+    {
+      "title": "クレメント余戸Ｃ 202",
+      "power_on": "2026-10-29",
+      "power_off": "2026-11-28",
+      "chiten_code": "011569603",
+      "hosoku1": "02020"
+    }
+  ]
 }
