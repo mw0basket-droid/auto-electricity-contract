@@ -1,7 +1,21 @@
 {
-  "generated_at": "2026-10-31 11:44:15",
-  "target_date": "2026-10-31",
+  "generated_at": "2026-11-01 11:36:56",
+  "target_date": "2026-11-01",
   "applications": [
+    {
+      "title": "Ｓｗｉｎｇ　ＳｉｎｇⅢ 201",
+      "power_on": "2026-11-04",
+      "power_off": "2026-12-03",
+      "chiten_code": "026598901",
+      "hosoku1": "02010"
+    },
+    {
+      "title": "カーサ　セレーノ　Ｂ 102",
+      "power_on": "2026-11-04",
+      "power_off": "2026-12-03",
+      "chiten_code": "026911402",
+      "hosoku1": "01020"
+    },
     {
       "title": "リヴェール　コート 203",
       "power_on": "2026-11-02",
