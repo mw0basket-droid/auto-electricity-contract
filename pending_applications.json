@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-11-02 11:45:01",
-  "target_date": "2026-11-02",
+  "generated_at": "2026-11-02 16:10:43",
+  "target_date": "2026-11-03",
   "applications": [
     {
       "title": "Ｓｗｉｎｇ　ＳｉｎｇⅢ 201",
@@ -35,13 +35,6 @@
       "power_on": "2026-11-02",
       "power_off": "2026-12-01",
       "chiten_code": "006517002",
-      "hosoku1": "02020"
-    },
-    {
-      "title": "クレメント余戸Ｃ 202",
-      "power_on": "2026-10-29",
-      "power_off": "2026-11-28",
-      "chiten_code": "011569603",
       "hosoku1": "02020"
     }
   ]
