@@ -1,7 +1,14 @@
 {
-  "generated_at": "2026-11-13 12:36:48",
-  "target_date": "2026-11-13",
+  "generated_at": "2026-11-14 12:36:18",
+  "target_date": "2026-11-14",
   "applications": [
+    {
+      "title": "エレガンツァ・プリムラＡ 101",
+      "power_on": "2026-11-17",
+      "power_off": "2026-12-16",
+      "chiten_code": "014308001",
+      "hosoku1": "01010"
+    },
     {
       "title": "Ｓｗｉｎｇ　ＳｉｎｇⅢ 201",
       "power_on": "2026-11-06",
