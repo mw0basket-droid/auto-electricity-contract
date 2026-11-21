@@ -1,7 +1,14 @@
 {
-  "generated_at": "2026-11-20 13:19:37",
-  "target_date": "2026-11-20",
+  "generated_at": "2026-11-21 13:17:09",
+  "target_date": "2026-11-21",
   "applications": [
+    {
+      "title": "ホライズン・タカオカⅡ 103",
+      "power_on": "2026-11-25",
+      "power_off": "2026-12-24",
+      "chiten_code": "014340501",
+      "hosoku1": "01030"
+    },
     {
       "title": "エレガンツァ・プリムラＡ 101",
       "power_on": "2026-11-17",
