@@ -1,7 +1,14 @@
 {
-  "generated_at": "2026-11-22 12:29:58",
-  "target_date": "2026-11-22",
+  "generated_at": "2026-11-23 13:01:01",
+  "target_date": "2026-11-23",
   "applications": [
+    {
+      "title": "グランデ・プリムラＢ 201",
+      "power_on": "2026-11-25",
+      "power_off": "2026-12-24",
+      "chiten_code": "021184102",
+      "hosoku1": "02010"
+    },
     {
       "title": "ホライズン・タカオカⅡ 103",
       "power_on": "2026-11-25",
