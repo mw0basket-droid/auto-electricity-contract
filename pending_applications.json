@@ -1,5 +1,13 @@
 {
-  "generated_at": "2026-11-25 14:41:25",
-  "target_date": "2026-11-25",
-  "applications": []
+  "generated_at": "2026-11-26 14:28:46",
+  "target_date": "2026-11-26",
+  "applications": [
+    {
+      "title": "パサージュ南斎院 103",
+      "power_on": "2026-11-27",
+      "power_off": "2026-12-26",
+      "chiten_code": "020107601",
+      "hosoku1": "01030"
+    }
+  ]
 }
