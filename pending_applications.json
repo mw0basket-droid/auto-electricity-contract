@@ -1,7 +1,14 @@
 {
-  "generated_at": "2026-11-27 14:22:42",
-  "target_date": "2026-11-27",
+  "generated_at": "2026-11-28 13:58:48",
+  "target_date": "2026-11-28",
   "applications": [
+    {
+      "title": "シャーロームＳ 202",
+      "power_on": "2026-12-01",
+      "power_off": "2026-12-31",
+      "chiten_code": "026785301",
+      "hosoku1": "02020"
+    },
     {
       "title": "パサージュ南斎院 103",
       "power_on": "2026-11-27",
